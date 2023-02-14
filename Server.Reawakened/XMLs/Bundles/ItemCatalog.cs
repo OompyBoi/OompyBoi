@@ -45,12 +45,12 @@ public class ItemCatalog : ItemHandler, ILocalizationXml
 
     private static void AddCategoryPet(XmlDocument xml)
     {
-        var root = xml.SelectSingleNode("Catalog");
+        var root = xml.SelectSingleNode("/Catalog");
 
         var petCategory = xml.CreateElement("ItemCategory").AddAttribute(xml, "id", 16).AddAttribute(xml, "name", "Pet");
         var petSubCategory = xml.CreateElement("ItemSubcategory").AddAttribute(xml, "id", 47).AddAttribute(xml, "name", "Pet").AddAttribute(xml, "number_effects", 1);
         
-        var enzoItem = xml.CreateElement("item").AddAttribute(xml, "action_type", "Pet").AddAttribute(xml, "bind_type", "OnEquip")
+        var enzoItem = xml.CreateElement("Item").AddAttribute(xml, "action_type", "Pet").AddAttribute(xml, "bind_type", "OnEquip")
             .AddAttribute(xml, "cooldown_time", "1.0").AddAttribute(xml, "currency", "Banana").AddAttribute(xml, "discounted_from", "None")
             .AddAttribute(xml, "discounted_to", "None").AddAttribute(xml, "global_level", 1).AddAttribute(xml, "id", 4000).AddAttribute(xml, "ingamename", 10000)
             .AddAttribute(xml, "item_level", 1).AddAttribute(xml, "name", "PF_PET_Rig02_Enzo01").AddAttribute(xml, "prefab", "PF_PET_Rig02_Enzo01")
