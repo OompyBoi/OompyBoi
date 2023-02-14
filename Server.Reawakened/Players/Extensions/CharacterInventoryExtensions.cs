@@ -41,7 +41,7 @@ public static class CharacterInventoryExtensions
     {
         var sb = new SeparatedStringBuilder('|');
 
-        foreach (var item in inventory.Items)
+        foreach (var item in inventory.Items.Values)
             sb.Append(item.ToString());
 
         return sb.ToString();

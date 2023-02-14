@@ -1,5 +1,6 @@
 ﻿using Server.Base.Core.Extensions;
 using Server.Reawakened.XMLs.Abstractions;
+using Server.Reawakened.XMLs.Extensions;
 using System.Xml;
 
 namespace Server.Reawakened.XMLs.Bundles;
@@ -25,6 +26,8 @@ public class VendorCatalog : VendorCatalogsXML, IBundledXml
 
     public void EditXml(XmlDocument xml)
     {
+        AddMogriVendor(xml);
+
         var items = xml.SelectNodes("/vendor_catalogs/superpacks/superpack/item");
 
         if (items == null)
@@ -49,7 +52,17 @@ public class VendorCatalog : VendorCatalogsXML, IBundledXml
 
     public void ReadXml(string xml) => ReadDescriptionXml(xml);
 
-    public void FinalizeBundle()
+    public void FinalizeBundle() {}
+
+    private static void AddMogriVendor(XmlDocument xml)
     {
+        var root = xml.SelectSingleNode("vendor_catalogs");
+
+        var mogriVendor = xml.CreateElement("vendor").AddAttribute(xml, "catalogid", 116);
+
+        var enzoItem = xml.CreateElement("item").AddAttribute(xml, "id", 4000);
+
+        mogriVendor.AppendChild(enzoItem);
+        root.AppendChild(mogriVendor);
     }
 }

@@ -62,6 +62,8 @@ public class BuildXmlFiles : IService, IInjectModules
         {
             foreach (var asset in assets)
             {
+                if (XmlFiles.ContainsKey(asset.Name)) continue;
+
                 var text = GetXmlData(asset, bar);
 
                 if (string.IsNullOrEmpty(text))
@@ -93,9 +95,23 @@ public class BuildXmlFiles : IService, IInjectModules
                                     )
                                 );
 
-                                var localizedXml = GetXmlData(localizedAsset, bar);
+                                var localizedXmlText = GetXmlData(localizedAsset, bar);
+                                var localizedXml = new XmlDocument();
+                                localizedXml.LoadXml(localizedXmlText);
 
-                                locXmlBundle.ReadLocalization(localizedXml);
+                                locXmlBundle.EditLocalization(localizedXml);
+
+                                localizedXmlText = localizedXml.WriteToString();
+
+                                locXmlBundle.ReadLocalization(localizedXmlText);
+
+                                bundles.Remove(localizedAsset.Name);
+
+                                bar.SetMessage($"Loaded {localizedAsset.Name} From Disk");
+
+                                var localizationPath = Path.Join(directory, $"{localizedAsset.Name}.xml");
+                                File.WriteAllText(localizationPath, localizedXmlText);
+                                XmlFiles.Add(localizedAsset.Name, localizationPath);
                             }
 
                             var xml = new XmlDocument();
