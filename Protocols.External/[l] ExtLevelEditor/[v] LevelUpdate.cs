@@ -1,40 +1,43 @@
 ﻿using Microsoft.Extensions.Logging;
+using Server.Reawakened.Chat.Services;
 using Server.Reawakened.Entities;
-using Server.Reawakened.Levels.Models.Entities;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Helpers;
+using Server.Reawakened.Rooms.Extensions;
+using Server.Reawakened.Rooms.Models.Entities;
 
 namespace Protocols.External._l__ExtLevelEditor;
 
-public class LevelUpdate : ExternalProtocol
+public class RoomUpdate : ExternalProtocol
 {
     public override string ProtocolName => "lv";
 
-    public ILogger<LevelUpdate> Logger { get; set; }
-    public LevelHandler LevelHandler { get; set; }
+    public ILogger<RoomUpdate> Logger { get; set; }
+    public ChatCommands ChatCommands { get; set; }
 
     public override void Run(string[] message)
     {
         var player = NetState.Get<Player>();
-        var level = player.GetCurrentLevel(LevelHandler);
 
-        if (level == null)
-            return;
-
-        var gameObjectStore = GetGameObjectStore(level.LevelEntities.Entities);
+        var gameObjectStore = GetGameObjectStore(player.CurrentRoom.Entities);
 
         SendXt("lv", 0, gameObjectStore);
 
-        foreach (var entity in level.LevelEntities.Entities.Values.SelectMany(x => x))
+        foreach (var entity in player.CurrentRoom.Entities.Values.SelectMany(x => x))
             entity.SendDelayedData(NetState);
 
-        player.GetCurrentLevel(LevelHandler).SendCharacterInfo(player, NetState);
+        player.CurrentRoom.SendCharacterInfo(player, NetState);
 
-        foreach (var npc in level.LevelEntities.GetEntities<NpcControllerEntity>())
+        foreach (var npc in player.CurrentRoom.GetEntities<NpcControllerEntity>())
             npc.Value.SendNpcInfo(player.GetCurrentCharacter(), NetState);
+
+        if (!player.FirstLogin)
+            return;
+
+        ChatCommands.DisplayHelp(NetState);
+        player.FirstLogin = false;
     }
 
     private string GetGameObjectStore(Dictionary<int, List<BaseSyncedEntity>> entities)

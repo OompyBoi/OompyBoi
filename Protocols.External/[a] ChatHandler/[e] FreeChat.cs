@@ -25,8 +25,7 @@ public class FreeChat : ExternalProtocol
 
         if (chatMessage.StartsWith(Config.ChatCommandStart))
         {
-            var args = chatMessage.Contains(' ') ? chatMessage[1..].Split(' ') :
-                new[] { chatMessage[1..] };
+            var args = chatMessage.Contains(' ') ? chatMessage[1..].Split(' ') : new[] { chatMessage[1..] };
 
             ChatCommands.RunCommand(NetState, args);
         }
@@ -34,7 +33,7 @@ public class FreeChat : ExternalProtocol
         {
             var player = NetState.Get<Player>();
             var character = player.GetCurrentCharacter();
-            player.CurrentLevel.Chat(channelType, character.Data.CharacterName, chatMessage);
+            player.CurrentRoom.Chat(channelType, character.Data.CharacterName, chatMessage);
         }
         else
         {

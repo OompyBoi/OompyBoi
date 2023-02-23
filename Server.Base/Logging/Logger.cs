@@ -12,6 +12,7 @@ public class Logger : ILogger
 
     private static int _offset;
     private static StreamWriter _output;
+    private static bool _criticalErrored;
 
     private readonly string _categoryName;
 
@@ -72,6 +73,9 @@ public class Logger : ILogger
                 _ => "U"
             };
 
+            if (logLevel == LogLevel.Critical)
+                _criticalErrored = true;
+
             WriteLine(color, message, shortLogLevel, eventId.Id);
         }
     }
@@ -82,8 +86,7 @@ public class Logger : ILogger
 
     private void WriteLine(ConsoleColor color, string message, string shortLogLevel, int eventId)
     {
-        var currentTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-        var prefix = $"[{currentTime}] [{shortLogLevel}] {_categoryName.Split('.').Last()}[{eventId}]";
+        var prefix = $"[{shortLogLevel}] {_categoryName.Split('.').Last()}[{eventId}]";
 
         if (_offset < prefix.Length) _offset = prefix.Length;
         var length = _offset - prefix.Length;
@@ -139,4 +142,6 @@ public class Logger : ILogger
         Output.WriteLine(ex);
         Output.WriteLine();
     }
+
+    public static bool HasCriticallyErrored() => _criticalErrored;
 }

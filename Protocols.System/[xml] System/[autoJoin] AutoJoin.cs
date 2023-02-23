@@ -1,11 +1,11 @@
 ﻿using A2m.Server;
 using Server.Base.Accounts.Models;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Helpers;
 using Server.Reawakened.Players.Models;
+using Server.Reawakened.Rooms.Services;
 using System.Xml;
 
 namespace Protocols.System._xml__System;
@@ -14,14 +14,14 @@ public class AutoJoin : SystemProtocol
 {
     public override string ProtocolName => "autoJoin";
 
-    public LevelHandler LevelHandler { get; set; }
+    public WorldHandler WorldHandler { get; set; }
 
     public override void Run(XmlDocument xmlDoc)
     {
         var account = NetState.Get<Account>();
         var player = NetState.Get<Player>();
 
-        player.QuickJoinLevel(0, NetState, LevelHandler);
+        player.QuickJoinRoom(0, NetState, WorldHandler);
 
         SendXt("cx", GetPropertyList(GetPropertiesOfUser(player.UserInfo, account)));
         SendXt("cl", GetCharacterList(player.UserInfo));
@@ -32,7 +32,7 @@ public class AutoJoin : SystemProtocol
         new()
         {
             { CharacterInfoHandler.ExternalProperties.Chat_Level, userInfo.ChatLevel },
-            { CharacterInfoHandler.ExternalProperties.Gender, Enum.GetName(userInfo.Gender) },
+            { CharacterInfoHandler.ExternalProperties.Gender, Enum.GetName(userInfo.Gender)!.ToLower()[0] },
             { CharacterInfoHandler.ExternalProperties.Country, userInfo.Region },
             {
                 CharacterInfoHandler.ExternalProperties.Age,

@@ -1,11 +1,11 @@
 ﻿using Server.Base.Network;
-using Server.Reawakened.Levels.Models.Entities;
+using Server.Reawakened.Entities.Abstractions;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
 
 namespace Server.Reawakened.Entities;
 
-public class ChestControllerEntity : SyncedEntity<ChestController>
+public class ChestControllerEntity : AbstractBaseChest<ChestController>
 {
     public bool Collected;
 
@@ -25,18 +25,18 @@ public class ChestControllerEntity : SyncedEntity<ChestController>
         var bananas = Random.Next(10, 100);
         player.AddBananas(netState, bananas);
 
-        var trig = new Trigger_SyncEvent(Id.ToString(), Level.Time, true, player.PlayerId.ToString(), true)
+        var trig = new Trigger_SyncEvent(Id.ToString(), Room.Time, true, player.GameObjectId.ToString(), true)
+        {
+            EventDataList =
             {
-                EventDataList =
-                {
-                    [0] = bananas
-                }
-            };
+                [0] = bananas
+            }
+        };
 
-        Level.SendSyncEvent(trig);
+        Room.SendSyncEvent(trig);
 
-        var rec = new TriggerReceiver_SyncEvent(Id.ToString(), Level.Time, player.PlayerId.ToString(), true, 1f);
-        
-        Level.SendSyncEvent(rec);
+        var rec = new TriggerReceiver_SyncEvent(Id.ToString(), Room.Time, player.GameObjectId.ToString(), true, 1f);
+
+        Room.SendSyncEvent(rec);
     }
 }

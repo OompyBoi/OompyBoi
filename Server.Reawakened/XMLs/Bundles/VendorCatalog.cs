@@ -24,7 +24,7 @@ public class VendorCatalog : VendorCatalogsXML, IBundledXml
         this.SetField<VendorCatalogsXML>("_loots", new Dictionary<int, List<LootData>>());
     }
 
-    public void EditXml(XmlDocument xml)
+    public void EditDescription(XmlDocument xml)
     {
         AddMogriVendor(xml);
 
@@ -50,7 +50,7 @@ public class VendorCatalog : VendorCatalogsXML, IBundledXml
         }
     }
 
-    public void ReadXml(string xml) => ReadDescriptionXml(xml);
+    public void ReadDescription(string xml) => ReadDescriptionXml(xml);
 
     public void FinalizeBundle() {}
 

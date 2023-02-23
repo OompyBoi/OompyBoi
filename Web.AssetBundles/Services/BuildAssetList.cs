@@ -3,8 +3,8 @@ using Microsoft.Extensions.Logging;
 using Server.Base.Core.Abstractions;
 using Server.Base.Core.Events;
 using Server.Base.Core.Extensions;
-using Server.Base.Core.Models;
 using Server.Base.Core.Services;
+using Server.Base.Network.Enums;
 using System.Xml;
 using Web.AssetBundles.Events;
 using Web.AssetBundles.Events.Arguments;
@@ -20,15 +20,14 @@ public class BuildAssetList : IService
 {
     private readonly AssetEventSink _assetSink;
     private readonly AssetBundleConfig _config;
-    private readonly AssetBundleStaticConfig _sConfig;
     private readonly ServerConsole _console;
-    private readonly StartConfig _startConfig;
     private readonly ILogger<BuildAssetList> _logger;
+    private readonly AssetBundleStaticConfig _sConfig;
     private readonly EventSink _sink;
+    private readonly StartConfig _startConfig;
 
     public readonly Dictionary<string, string> AssetDict;
 
-    public readonly List<string> CurrentlyLoadedAssets;
     public readonly Dictionary<string, string> PublishConfigs;
 
     public string AssetDictLocation;
@@ -49,27 +48,34 @@ public class BuildAssetList : IService
 
         PublishConfigs = new Dictionary<string, string>();
         AssetDict = new Dictionary<string, string>();
-
-        CurrentlyLoadedAssets = new List<string>();
     }
 
     public void Initialize() => _sink.WorldLoad += Load;
 
     public void Load()
     {
-        _console.AddCommand(new ConsoleCommand("refreshCacheDir",
+        _console.AddCommand(
+            "refreshCacheDir",
             "Force generates asset dictionary from default caches directory.",
-            _ => GenerateDefaultAssetList(true)));
+            NetworkType.Both,
+            _ => GenerateDefaultAssetList(true)
+        );
 
-        _console.AddCommand(new ConsoleCommand("changeCacheDir",
+        _console.AddCommand(
+            "changeCacheDir",
             "Change the default cache directory and regenerate dictionary.",
+            NetworkType.Both,
             _ =>
             {
                 _config.CacheInfoFile = GetInfoFile.TryGetInfoFile("Original", string.Empty, _logger);
                 GenerateDefaultAssetList(true);
-            }));
+            }
+        );
 
         _config.CacheInfoFile = GetInfoFile.TryGetInfoFile("Original", _config.CacheInfoFile, _logger);
+
+        if (!string.IsNullOrEmpty(_config.WebPlayerInfoFile))
+            _config.WebPlayerInfoFile = _config.GetWebPlayerInfoFile(_sConfig, _logger);
 
         Directory.CreateDirectory(_sConfig.AssetSaveDirectory);
         Directory.CreateDirectory(_sConfig.BundleSaveDirectory);
@@ -84,7 +90,7 @@ public class BuildAssetList : IService
 
     private void GenerateDefaultAssetList(bool forceGenerate)
     {
-        _logger.LogInformation("Getting Asset Dictionary");
+        _logger.LogDebug("Getting asset dictionary");
 
         var dictExists = File.Exists(AssetDictLocation);
 
@@ -97,7 +103,7 @@ public class BuildAssetList : IService
         InternalAssets.AddModifiedAssets(_sConfig);
         InternalAssets.AddLocalXmlFiles(_logger, _sConfig);
 
-        _logger.LogDebug("Loaded {Count} assets to memory.", InternalAssets.Count);
+        _logger.LogInformation("Loaded {Count} assets to memory.", InternalAssets.Count);
 
         foreach (var asset in InternalAssets.Values.Where(x => x.Type == AssetInfo.TypeAsset.Unknown))
             _logger.LogError("Could not find type for asset '{Name}' in '{File}'.", asset.Name, asset.Path);
@@ -111,8 +117,10 @@ public class BuildAssetList : IService
                              "Try adding them into the LocalAsset directory. " +
                              "The game will not run without these.");
 
-        var gameAssets = InternalAssets.Where(x => !vgmtAssets.ContainsKey(x.Key))
-            .Select(x => x.Value).ToList();
+        var gameAssets = InternalAssets
+            .Where(x => !vgmtAssets.ContainsKey(x.Key))
+            .Select(x => x.Value)
+            .ToArray();
 
         PublishConfigs.Clear();
         AssetDict.Clear();
@@ -123,7 +131,7 @@ public class BuildAssetList : IService
         AddPublishConfiguration(vgmtAssets.Values, _sConfig.PublishConfigVgmtKey);
         AddAssetDictionary(vgmtAssets.Values, _sConfig.PublishConfigVgmtKey);
 
-        _logger.LogDebug("Generated default dictionaries.");
+        _logger.LogInformation("Generated default dictionaries.");
 
         _assetSink.InvokeAssetBundlesLoaded(new AssetBundleLoadEventArgs(InternalAssets));
     }
@@ -318,7 +326,7 @@ public class BuildAssetList : IService
         File.WriteAllText(saveDir, document.WriteToString());
     }
 
-    private static IEnumerable<InternalAssetInfo> GetAssetsFromDictionary(string xml)
+    public static IEnumerable<InternalAssetInfo> GetAssetsFromDictionary(string xml)
     {
         var configuration = new List<InternalAssetInfo>();
 

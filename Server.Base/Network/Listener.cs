@@ -15,23 +15,24 @@ public class Listener : IDisposable
 {
     private readonly Queue<Socket> _accepted;
     private readonly object _acceptedSyncRoot;
-    private readonly Socket[] _emptySockets = Array.Empty<Socket>();
+    private readonly Socket[] _emptySockets;
     private readonly ServerHandler _handler;
     private readonly ILogger<MessagePump> _logger;
-    private readonly NetworkLogger _networkLogger;
+    private readonly FileLogger _fileLogger;
     private readonly AsyncCallback _onAccept;
     private readonly EventSink _sink;
 
     private Socket _listener;
 
-    public Listener(IPEndPoint ipEp, NetworkLogger networkLogger, ILogger<MessagePump> logger, ServerHandler handler,
+    public Listener(IPEndPoint ipEp, FileLogger fileLogger, ILogger<MessagePump> logger, ServerHandler handler,
         EventSink sink)
     {
-        _networkLogger = networkLogger;
+        _fileLogger = fileLogger;
         _logger = logger;
         _handler = handler;
         _sink = sink;
         _accepted = new Queue<Socket>();
+        _emptySockets = Array.Empty<Socket>();
         _acceptedSyncRoot = ((ICollection)_accepted).SyncRoot;
 
         _listener = Bind(ipEp);
@@ -49,7 +50,7 @@ public class Listener : IDisposable
         }
         catch (SocketException ex)
         {
-            networkLogger.TraceListenerError(ex, _listener);
+            TraceListenerError(ex, _listener);
         }
         catch (ObjectDisposedException)
         {
@@ -116,13 +117,13 @@ public class Listener : IDisposable
                 foreach (var uniCast in properties.UnicastAddresses)
                 {
                     if (ipEndPoint.AddressFamily == uniCast.Address.AddressFamily)
-                        _logger.LogInformation("Listening: {Address}:{Port}", uniCast.Address, ipEndPoint.Port);
+                        _logger.LogDebug("Listening: {Address}:{Port}", uniCast.Address, ipEndPoint.Port);
                 }
             }
         }
         else
         {
-            _logger.LogInformation("Listening: {Address}:{Port}", ipEndPoint.Address, ipEndPoint.Port);
+            _logger.LogDebug("Listening: {Address}:{Port}", ipEndPoint.Address, ipEndPoint.Port);
         }
     }
 
@@ -139,7 +140,7 @@ public class Listener : IDisposable
         }
         catch (SocketException ex)
         {
-            _networkLogger.TraceListenerError(ex, _listener);
+            TraceListenerError(ex, _listener);
         }
         catch (ObjectDisposedException)
         {
@@ -158,7 +159,7 @@ public class Listener : IDisposable
         }
         catch (SocketException ex)
         {
-            _networkLogger.TraceListenerError(ex, _listener);
+            TraceListenerError(ex, _listener);
         }
         catch (ObjectDisposedException)
         {
@@ -177,7 +178,7 @@ public class Listener : IDisposable
         }
         catch (Exception ex)
         {
-            _networkLogger.TraceListenerError(ex, _listener);
+            TraceListenerError(ex, _listener);
 
             return false;
         }
@@ -199,7 +200,7 @@ public class Listener : IDisposable
         }
         catch (SocketException ex)
         {
-            _networkLogger.TraceListenerError(ex, _listener);
+            TraceListenerError(ex, _listener);
         }
 
         try
@@ -208,7 +209,7 @@ public class Listener : IDisposable
         }
         catch (SocketException ex)
         {
-            _networkLogger.TraceListenerError(ex, _listener);
+            TraceListenerError(ex, _listener);
         }
     }
 
@@ -227,4 +228,7 @@ public class Listener : IDisposable
 
         return socketArray;
     }
+
+    public void TraceListenerError(Exception ex, Socket socket) =>
+        _fileLogger.WriteGenericLog<Listener>("listener-errors", $"Listener socket {socket}", ex.ToString(), LoggerType.Error);
 }

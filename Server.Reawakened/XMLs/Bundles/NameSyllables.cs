@@ -7,18 +7,17 @@ namespace Server.Reawakened.XMLs.Bundles;
 
 public class NameSyllables : NamegenSyllablesXML, IBundledXml
 {
-    public string BundleName => "NamegenSyllabes";
-
     public Dictionary<Gender, List<List<string>>> Syllables;
+    public string BundleName => "NamegenSyllabes";
 
     public void InitializeVariables() =>
         this.SetField<NamegenSyllablesXML>("_nameSyllables", new Dictionary<int, List<string>>());
 
-    public void EditXml(XmlDocument xml)
+    public void EditDescription(XmlDocument xml)
     {
     }
 
-    public void ReadXml(string xml) =>
+    public void ReadDescription(string xml) =>
         ReadDescriptionXml(xml);
 
     public void FinalizeBundle() =>

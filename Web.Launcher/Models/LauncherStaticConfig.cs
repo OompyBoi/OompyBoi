@@ -8,7 +8,6 @@ public class LauncherStaticConfig : IStaticConfig
 
     public ulong AnalyticsId { get; }
     public bool AnalyticsEnabled { get; }
-    public string AnalyticsApiKey { get; }
 
     public string BaseUrl { get; }
     public string HeaderFolderFilter { get; }
@@ -33,8 +32,7 @@ public class LauncherStaticConfig : IStaticConfig
         News = $"You expected there to be news here? It's {DateTime.Now.Year}!";
 
         AnalyticsId = 0;
-        AnalyticsEnabled = false;
-        AnalyticsApiKey = "ANALYTICS_KEY";
+        AnalyticsEnabled = true;
         BaseUrl = "http://localhost";
 
         CrashOnError = false;
@@ -49,7 +47,7 @@ public class LauncherStaticConfig : IStaticConfig
         CacheVersion = 1;
         CacheSize = 0;
         CacheExpiration = 0;
-        
+
         TimeFilter = "yyyy-MM-dd_HH-mm-ss";
         OldClientLastUpdate = "2013-11-01_12-00-00";
     }

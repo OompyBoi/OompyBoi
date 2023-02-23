@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using Server.Base.Logging;
 using Server.Reawakened.Configs;
-using Server.Reawakened.Levels.Models.Planes;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
+using Server.Reawakened.Rooms.Extensions;
+using Server.Reawakened.Rooms.Models.Planes;
+using Server.Reawakened.Rooms.Services;
 using System.Text;
 using WorldGraphDefines;
 
@@ -18,25 +19,23 @@ public class State : ExternalProtocol
     public SyncEventManager SyncEventManager { get; set; }
     public ILogger<State> Logger { get; set; }
     public ServerStaticConfig ServerConfig { get; set; }
-    public LevelHandler LevelHandler { get; set; }
-    public NetworkLogger NetworkLogger { get; set; }
+    public FileLogger FileLogger { get; set; }
 
     public override void Run(string[] message)
     {
         var player = NetState.Get<Player>();
-        var level = player.GetCurrentLevel(LevelHandler);
 
-        if (level == null)
+        if (player.CurrentRoom.Entities == null)
             return;
 
         var syncEvent = SyncEventManager.DecodeEvent(message[5].Split('&'));
 
         if (ServerConfig.LogSyncState)
-            Logger.LogInformation("Found state: {State}", syncEvent.Type);
+            Logger.LogDebug("Found state: {State}", syncEvent.Type);
 
         var entityId = int.Parse(syncEvent.TargetID);
 
-        if (entityId == player.PlayerId)
+        if (entityId == player.GameObjectId)
         {
             switch (syncEvent.Type)
             {
@@ -57,12 +56,12 @@ public class State : ExternalProtocol
                     var notifyCollisionEvent = new NotifyCollision_SyncEvent(syncEvent);
                     var collisionTarget = int.Parse(notifyCollisionEvent.CollisionTarget);
 
-                    if (level.LevelEntities.Entities.TryGetValue(collisionTarget, out var entities))
+                    if (player.CurrentRoom.Entities.TryGetValue(collisionTarget, out var entities))
                         foreach (var entity in entities)
                             entity.NotifyCollision(notifyCollisionEvent, NetState);
                     else
-                        Logger.LogWarning("Unhandled collision From {TargetId} ", collisionTarget);
-
+                        Logger.LogWarning("Unhandled collision from {TargetId}, no entity for {EntityType}.",
+                            collisionTarget, player.CurrentRoom.GetUnknownEntityTypes(collisionTarget));
                     break;
                 case SyncEvent.EventType.PhysicBasic:
                     var physicsBasicEvent = new PhysicBasic_SyncEvent(syncEvent);
@@ -89,9 +88,9 @@ public class State : ExternalProtocol
                     break;
             }
 
-            player.CurrentLevel.SendSyncEvent(syncEvent, player);
+            player.CurrentRoom.SendSyncEvent(syncEvent, player);
         }
-        else if (level.LevelEntities.Entities.TryGetValue(entityId, out var entities))
+        else if (player.CurrentRoom.Entities.TryGetValue(entityId, out var entities))
         {
             foreach (var entity in entities)
                 entity.RunSyncedEvent(syncEvent, NetState);
@@ -101,41 +100,22 @@ public class State : ExternalProtocol
             switch (syncEvent.Type)
             {
                 default:
-                    var entity = level.LevelPlanes.Planes.Values.SelectMany(x => x.GameObjects)
-                        .FirstOrDefault(x => x.Key == entityId);
-
-                    var components = new List<string>();
-
-                    if (entity.Value != null)
-                        foreach (var component in entity.Value.ObjectInfo.Components)
-                        {
-                            LevelHandler.ProcessableData.TryGetValue(component.Key, out var mqType);
-
-                            if (mqType != null)
-                                components.Add(mqType.Name);
-                        }
-
-                    if (components.Count == 0)
-                        components.Add("UNKNOWN");
-
-                    var names = string.Join(", ", components);
-                    
-                    TraceSyncEventError(entityId, syncEvent, level.LevelInfo, names);
-
+                    TraceSyncEventError(entityId, syncEvent, player.CurrentRoom.LevelInfo,
+                        player.CurrentRoom.GetUnknownEntityTypes(entityId));
                     break;
             }
         }
     }
 
-    public void TraceSyncEventError(int entityId, SyncEvent syncEvent, LevelInfo levelInfo, string names)
+    public void TraceSyncEventError(int entityId, SyncEvent syncEvent, LevelInfo levelInfo, string entityInfo)
     {
         var builder = new StringBuilder()
-            .AppendLine($"# {DateTime.UtcNow} @ Sync Entity: {entityId} ({names})")
+            .AppendLine($"Entity: {entityId}")
+            .AppendLine(entityInfo)
             .AppendLine($"Level: {levelInfo.LevelId} ({levelInfo.InGameName})")
-            .AppendLine($"Sync Event Type: {syncEvent.Type}")
-            .AppendLine()
-            .AppendLine(syncEvent.EncodeData());
+            .AppendLine($"Event Type: {syncEvent.Type}")
+            .Append($"Data: {syncEvent.EncodeData()}");
 
-        NetworkLogger.WriteToFile<SyncEvent>("event-errors.log", builder, LoggerType.Warning);
+        FileLogger.WriteGenericLog<SyncEvent>("event-errors", "State Change", builder.ToString(), LoggerType.Warning);
     }
 }

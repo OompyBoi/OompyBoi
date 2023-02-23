@@ -8,10 +8,9 @@ namespace Server.Reawakened.XMLs.Bundles;
 
 public class QuestCatalog : QuestCatalogXML, IBundledXml
 {
-    public string BundleName => "QuestCatalog";
-
     private SortedDictionary<QuestLineDescription, List<QuestDescription>> _questLines;
     private Dictionary<int, QuestDescription> _quests;
+    public string BundleName => "QuestCatalog";
 
     public void InitializeVariables()
     {
@@ -30,11 +29,11 @@ public class QuestCatalog : QuestCatalogXML, IBundledXml
         _questLines = new SortedDictionary<QuestLineDescription, List<QuestDescription>>();
     }
 
-    public void EditXml(XmlDocument xml)
+    public void EditDescription(XmlDocument xml)
     {
     }
 
-    public void ReadXml(string xml) => ReadDescriptionXml(xml);
+    public void ReadDescription(string xml) => ReadDescriptionXml(xml);
 
     public void FinalizeBundle()
     {
@@ -44,8 +43,8 @@ public class QuestCatalog : QuestCatalogXML, IBundledXml
                 SortedDictionary<QuestLineDescription, List<QuestDescription>>;
     }
 
-    public List<QuestDescription> GetQuestsBy(int npcId) =>
-        _quests.Values.Where(q => q.QuestGiverGoId == npcId).ToList();
+    public QuestDescription[] GetQuestsBy(int npcId) =>
+        _quests.Values.Where(q => q.QuestGiverGoId == npcId).ToArray();
 
     public List<QuestDescription> GetQuestLineQuests(QuestLineDescription questLine) =>
         _questLines.TryGetValue(questLine, out var v) ? v : null;

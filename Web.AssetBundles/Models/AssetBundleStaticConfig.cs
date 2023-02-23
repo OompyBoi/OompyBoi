@@ -20,6 +20,7 @@ public class AssetBundleStaticConfig : IStaticConfig
 
     public string BundleSaveDirectory { get; }
     public string AssetSaveDirectory { get; }
+    public string RemovedDuplicateDirectory { get; }
     public string XmlSaveDirectory { get; }
 
     public string SaveBundleExtension { get; }
@@ -43,6 +44,7 @@ public class AssetBundleStaticConfig : IStaticConfig
         BundleSaveDirectory = Path.Combine(InternalDirectory.GetBaseDirectory(), "Bundles");
         XmlSaveDirectory = Path.Combine(InternalDirectory.GetBaseDirectory(), "XMLs");
         AssetSaveDirectory = Path.Combine(InternalDirectory.GetBaseDirectory(), "AssetDictionaries");
+        RemovedDuplicateDirectory = Path.Combine(InternalDirectory.GetBaseDirectory(), "RemovedDuplicates");
         LocalAssetCache = Path.Combine(InternalDirectory.GetBaseDirectory(), "TestAssetCache.cache");
 
         UseCacheReplacementScheme = true;
@@ -55,7 +57,7 @@ public class AssetBundleStaticConfig : IStaticConfig
 
         SaveBundleExtension = "bundleGen";
         StoredAssetDict = "StoredAssets.xml";
-        
+
         Message = "Loading Asset Bundles";
         DefaultWebPlayerCacheLocation = "AppData/LocalLow/Unity/WebPlayer/Cache";
         AssetModifiers = new[] { "_nomesh" };

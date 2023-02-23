@@ -2,36 +2,35 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Server.Base.Core.Abstractions;
-using Server.Base.Core.Events;
-using Server.Base.Core.Extensions;
 using Server.Base.Core.Services;
 using Server.Base.Network;
 using Server.Reawakened.Chat.Models;
 using Server.Reawakened.Configs;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Network.Extensions;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
+using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
 
 namespace Server.Reawakened.Chat.Services;
 
 public class ChatCommands : IService
 {
-    private readonly Dictionary<string, ChatCommand> _commands;
-    private readonly ItemCatalog _itemCatalog;
-    private readonly ServerStaticConfig _config;
-    private readonly ILogger<ServerConsole> _logger;
     private readonly IHostApplicationLifetime _appLifetime;
-    private readonly LevelHandler _levelHandler;
+    private readonly Dictionary<string, ChatCommand> _commands;
+    private readonly ServerStaticConfig _config;
+    private readonly ItemCatalog _itemCatalog;
+    private readonly ILogger<ServerConsole> _logger;
     private readonly WorldGraph _worldGraph;
+    private readonly WorldHandler _worldHandler;
 
-    public ChatCommands(ItemCatalog itemCatalog, ServerStaticConfig config, ILogger<ServerConsole> logger, EventSink eventSink, LevelHandler levelHandler, WorldGraph worldGraph, IHostApplicationLifetime appLifetime)
+    public ChatCommands(ItemCatalog itemCatalog, ServerStaticConfig config, ILogger<ServerConsole> logger,
+        WorldHandler worldHandler, WorldGraph worldGraph, IHostApplicationLifetime appLifetime)
     {
         _itemCatalog = itemCatalog;
         _config = config;
         _logger = logger;
-        _levelHandler = levelHandler;
+        _worldHandler = worldHandler;
         _worldGraph = worldGraph;
         _appLifetime = appLifetime;
         _commands = new Dictionary<string, ChatCommand>();
@@ -41,32 +40,34 @@ public class ChatCommands : IService
 
     public void RunChatListener()
     {
-        _logger.LogInformation("Setting Up Chat Commands");
+        _logger.LogDebug("Setting up chat commands");
 
-        AddCommand(new ChatCommand("listlevels", "[filterUnknown](true/false)", ListLevels));
-        AddCommand(new ChatCommand("level", "[levelId]", ChangeLevel));
-        AddCommand(new ChatCommand("item", "[itemId] [amount]", AddItem));
+        AddCommand(new ChatCommand("warp", "[levelId]", ChangeLevel));
+        AddCommand(new ChatCommand("giveItem", "[itemId] [amount]", AddItem));
+        AddCommand(new ChatCommand("levelUp", "[newLevel]", LevelUp));
 
-        _logger.LogDebug("See chat commands by running {ChatCharStart}help", _config.ChatCommandStart);
+        _logger.LogInformation("See chat commands by running {ChatCharStart}help", _config.ChatCommandStart);
     }
-    
+
     public void RunCommand(NetState netState, string[] args)
     {
         var name = args.FirstOrDefault();
 
         if (name != null && _commands.TryGetValue(name, out var value))
-            Log(value.CommandMethod(netState, args)
-                    ? $"Successfully ran command '{name}'"
-                    : $"Usage: {_config.ChatCommandStart}{value.Name} {value.Arguments}",
-                netState);
+        {
+            if (!value.CommandMethod(netState, args))
+                Log($"Usage: {_config.ChatCommandStart}{value.Name} {value.Arguments}", netState);
+        }
         else
+        {
             DisplayHelp(netState);
+        }
     }
 
     private static void Log(string logMessage, NetState netState) =>
         netState.Chat(CannedChatChannel.Tell, "Console", logMessage);
 
-    private void DisplayHelp(NetState netState)
+    public void DisplayHelp(NetState netState)
     {
         Log("Chat Commands:", netState);
 
@@ -95,15 +96,14 @@ public class ChatCommands : IService
 
         var levelId = Convert.ToInt32(args[1]);
 
-        character.SetCharacterSpawn(0, 0, _logger);
+        character.SetLevel(levelId, _logger);
 
-        character.Level = levelId;
         var levelInfo = _worldGraph.GetInfoLevel(levelId);
 
         var tribe = levelInfo.Tribe;
 
         netState.DiscoverTribe(tribe);
-        player.SendLevelChange(netState, _levelHandler, _worldGraph);
+        player.SendLevelChange(netState, _worldHandler, _worldGraph);
 
         Log(
             $"Successfully set character {character.Data.CharacterId}'s level to {levelId} '{levelInfo.InGameName}' ({levelInfo.Name})",
@@ -111,6 +111,19 @@ public class ChatCommands : IService
         );
 
         Log($"{character.Data.CharacterName} changed to level {levelId}", netState);
+
+        return true;
+    }
+
+    private bool LevelUp(NetState netState, string[] args)
+    {
+        var player = netState.Get<Player>();
+
+        if (args.Length != 2)
+            return false;
+
+        var newLevel = Convert.ToInt32(args[1]);
+        player.LevelUp(newLevel, _logger);
 
         return true;
     }
@@ -146,42 +159,6 @@ public class ChatCommands : IService
         character.SendUpdatedInventory(netState, false);
 
         Log($"{character.Data.CharacterName} received {item.ItemName} x{amount}", netState);
-
-        return true;
-    }
-
-    private bool ListLevels(NetState netState, string[] args)
-    {
-        if (args.Length != 2)
-            return false;
-        
-        bool shouldFilter;
-
-        switch (args[1].ToLower())
-        {
-            case "true":
-                shouldFilter = true;
-                break;
-            case "false":
-                shouldFilter = false;
-                break;
-            default:
-                return false;
-        }
-
-        Log("Levels:", netState);
-
-        foreach (var levelValue in (Dictionary<string, int>)
-                 _worldGraph.GetField<WorldGraphXML>("_levelNameToID"))
-        {
-            if (shouldFilter)
-                if (!File.Exists(Path.Join(_config.LevelSaveDirectory, $"{levelValue.Key}.xml")))
-                    continue;
-
-            var name = _worldGraph.GetInfoLevel(levelValue.Value).InGameName;
-
-            Log($"{levelValue.Value}: {name}", netState);
-        }
 
         return true;
     }

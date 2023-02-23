@@ -7,9 +7,8 @@ namespace Server.Reawakened.XMLs.Bundles;
 
 public class WorldGraph : WorldGraphXML, IBundledXml
 {
+    public int DefaultLevel;
     public string BundleName => "world_graph";
-
-    public int ClockTowerId;
 
     public void InitializeVariables()
     {
@@ -20,15 +19,15 @@ public class WorldGraph : WorldGraphXML, IBundledXml
         this.SetField<WorldGraphXML>("_levelNameToID", new Dictionary<string, int>());
         this.SetField<WorldGraphXML>("_levelInfos", new Dictionary<int, LevelInfo>());
 
-        ClockTowerId =
+        DefaultLevel =
             int.Parse(this.GetField<WorldGraphXML>("CLOCK_TOWER_SQUARE_LEVEL_ID").ToString() ?? string.Empty);
     }
 
-    public void EditXml(XmlDocument xml)
+    public void EditDescription(XmlDocument xml)
     {
     }
 
-    public void ReadXml(string xml) =>
+    public void ReadDescription(string xml) =>
         ReadDescriptionXml(xml);
 
     public void FinalizeBundle()

@@ -1,7 +1,7 @@
 ﻿using Server.Base.Network;
-using Server.Reawakened.Levels.Models.Entities;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
+using Server.Reawakened.Rooms.Models.Entities;
 
 namespace Server.Reawakened.Entities;
 
@@ -13,7 +13,7 @@ public class IdolControllerEntity : SyncedEntity<IdolController>
     {
         var player = netState.Get<Player>();
         var character = player.GetCurrentCharacter();
-        var levelId = Level.LevelInfo.LevelId;
+        var levelId = Room.LevelInfo.LevelId;
 
         if (!character.CollectedIdols.ContainsKey(levelId))
             character.CollectedIdols.Add(levelId, new List<int>());
@@ -25,12 +25,12 @@ public class IdolControllerEntity : SyncedEntity<IdolController>
     {
         var player = netState.Get<Player>();
         var character = player.GetCurrentCharacter();
-        var levelId = Level.LevelInfo.LevelId;
+        var levelId = Room.LevelInfo.LevelId;
 
         if (character.CollectedIdols[levelId].Contains(Index))
             return;
 
         character.CollectedIdols[levelId].Add(Index);
-        player.SentEntityTriggered(Id, Level);
+        Room.SentEntityTriggered(Id, player, true, true);
     }
 }

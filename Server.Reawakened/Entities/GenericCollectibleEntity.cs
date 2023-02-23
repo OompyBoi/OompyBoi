@@ -1,22 +1,20 @@
 ﻿using Microsoft.Extensions.Logging;
 using Server.Base.Network;
-using Server.Reawakened.Levels.Models.Entities;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
+using Server.Reawakened.Rooms.Models.Entities;
 
 namespace Server.Reawakened.Entities;
 
 public class GenericCollectibleModel : SyncedEntity<GenericCollectible>
 {
-    public ILogger<GenericCollectibleModel> Logger { get; set; }
-
     public bool Collected;
+
     public int Value;
+    public ILogger<GenericCollectibleModel> Logger { get; set; }
 
     public override void InitializeEntity()
     {
-        Collected = false;
-
         switch (PrefabName)
         {
             case "BananaGrapCollectible":
@@ -26,7 +24,7 @@ public class GenericCollectibleModel : SyncedEntity<GenericCollectible>
                 Value = 1;
                 break;
             default:
-                Logger.LogInformation("Collectible not implemented for {PrefabName}", PrefabName);
+                Logger.LogWarning("Collectible not implemented for {PrefabName}", PrefabName);
                 break;
         }
     }
@@ -37,11 +35,10 @@ public class GenericCollectibleModel : SyncedEntity<GenericCollectible>
     public override void RunSyncedEvent(SyncEvent syncEvent, NetState netState)
     {
         Collected = true;
-        var collectedValue = Value * Level.Clients.Count;
+        var collectedValue = Value * Room.Clients.Count;
 
-        var currentPlayer = netState.Get<Player>();
-
-        currentPlayer.SentEntityTriggered(Id, Level);
+        var player = netState.Get<Player>();
+        Room.SentEntityTriggered(Id, player, true, true);
 
         var effectName = string.Empty;
 
@@ -54,19 +51,19 @@ public class GenericCollectibleModel : SyncedEntity<GenericCollectible>
                 effectName = "PF_FX_Banana_Level_02";
                 break;
             default:
-                Logger.LogInformation("Collectible not implemented for {PrefabName}", PrefabName);
+                Logger.LogWarning("Collectible not implemented for {PrefabName}", PrefabName);
                 break;
         }
 
-        var effectEvent = new FX_SyncEvent(Id.ToString(), Level.Time, effectName,
+        var effectEvent = new FX_SyncEvent(Id.ToString(), Room.Time, effectName,
             Position.X, Position.Y, FX_SyncEvent.FXState.Play);
 
-        Level.SendSyncEvent(effectEvent);
+        Room.SendSyncEvent(effectEvent);
 
         if (collectedValue <= 0)
             return;
 
-        foreach (var client in Level.Clients.Values)
+        foreach (var client in Room.Clients.Values)
             client.Get<Player>().AddBananas(client, collectedValue);
     }
 }

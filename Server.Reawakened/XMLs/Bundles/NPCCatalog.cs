@@ -6,18 +6,17 @@ namespace Server.Reawakened.XMLs.Bundles;
 
 public class NpcCatalog : IBundledXml
 {
-    public string BundleName => "NPCCatalog";
-
     public Dictionary<int, NpcDescription> CachedNpcDict;
+    public string BundleName => "NPCCatalog";
 
     public void InitializeVariables() =>
         CachedNpcDict = new Dictionary<int, NpcDescription>();
 
-    public void EditXml(XmlDocument xml)
+    public void EditDescription(XmlDocument xml)
     {
     }
 
-    public void ReadXml(string xml)
+    public void ReadDescription(string xml)
     {
         var xmlDocument = new XmlDocument();
         xmlDocument.LoadXml(xml);

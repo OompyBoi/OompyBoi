@@ -4,14 +4,14 @@ using Server.Base.Accounts.Services;
 using Server.Base.Core.Abstractions;
 using Server.Base.Core.Events;
 using Server.Base.Core.Extensions;
-using Server.Base.Core.Models;
 using Server.Base.Core.Services;
+using Server.Base.Network.Enums;
 using Server.Base.Network.Services;
 using Server.Reawakened.Configs;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Players.Events;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Models.Character;
+using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
 
 namespace Server.Reawakened.Players.Services;
@@ -22,18 +22,19 @@ public class EditCharacter : IService
     private readonly ServerStaticConfig _config;
     private readonly ServerConsole _console;
     private readonly NetStateHandler _handler;
-    private readonly LevelHandler _levelHandler;
+    private readonly ItemCatalog _itemCatalog;
     private readonly ILogger<EditCharacter> _logger;
+    private readonly PlayerEventSink _playerEventSink;
     private readonly EventSink _sink;
     private readonly UserInfoHandler _userInfoHandler;
     private readonly WorldGraph _worldGraph;
-    private readonly ItemCatalog _itemCatalog;
-    private readonly PlayerEventSink _playerEventSink;
+    private readonly WorldHandler _worldHandler;
 
     public EditCharacter(ServerConsole console, EventSink sink,
         ILogger<EditCharacter> logger, UserInfoHandler userInfoHandler,
         AccountHandler accountHandler, WorldGraph worldGraph,
-        ServerStaticConfig config, NetStateHandler handler, LevelHandler levelHandler, ItemCatalog itemCatalog, PlayerEventSink playerEventSink)
+        ServerStaticConfig config, NetStateHandler handler, WorldHandler worldHandler,
+        ItemCatalog itemCatalog, PlayerEventSink playerEventSink)
     {
         _console = console;
         _sink = sink;
@@ -43,7 +44,7 @@ public class EditCharacter : IService
         _worldGraph = worldGraph;
         _config = config;
         _handler = handler;
-        _levelHandler = levelHandler;
+        _worldHandler = worldHandler;
         _itemCatalog = itemCatalog;
         _playerEventSink = playerEventSink;
     }
@@ -52,17 +53,33 @@ public class EditCharacter : IService
 
     public void Load()
     {
-        _console.AddCommand(new ConsoleCommand("changeName",
+        _console.AddCommand(
+            "changeName",
             "Changes the name of a requested user's character.",
-            _ => ChangeCharacterName()));
+            NetworkType.Server,
+            _ => ChangeCharacterName()
+        );
 
-        _console.AddCommand(new ConsoleCommand("changeLevel",
+        _console.AddCommand(
+            "changeLevel",
             "Changes the level of a requested user's character.",
-            _ => ChangeCharacterLevel()));
+            NetworkType.Server,
+            _ => ChangeCharacterLevel()
+        );
 
-        _console.AddCommand(new ConsoleCommand("giveItem",
+        _console.AddCommand(
+            "levelUp",
+            "Changes a player's XP level.",
+            NetworkType.Server,
+            _ => LevelUp()
+        );
+
+        _console.AddCommand(
+            "giveItem",
             "Gives an item to a requested user's character.",
-            _ => GiveItem()));
+            NetworkType.Server,
+            _ => GiveItem()
+        );
     }
 
     private void ChangeCharacterName()
@@ -116,40 +133,55 @@ public class EditCharacter : IService
 
         var level = Console.ReadLine()?.Trim();
 
-        if (string.IsNullOrEmpty(level))
-        {
-            _logger.LogError("Character's level can not be empty!");
-            return;
-        }
-
         if (!int.TryParse(level, out var levelId))
         {
-            _logger.LogError("Character's level has to be an integer!");
+            _logger.LogError("Level ID has to be an integer");
             return;
         }
 
-        character.SetCharacterSpawn(0, 0, _logger);
-
-        character.Level = levelId;
+        character.SetLevel(levelId, 0, 0, _logger);
 
         var levelInfo = _worldGraph.GetInfoLevel(levelId);
-        
+
         var tribe = levelInfo.Tribe;
 
         if (_handler.IsPlayerOnline(user.UserId, out var netState, out var player))
         {
             netState.DiscoverTribe(tribe);
-            player.SendLevelChange(netState, _levelHandler, _worldGraph);
+            player.SendLevelChange(netState, _worldHandler, _worldGraph);
         }
         else
         {
-            character.Data.HasAddedDiscoveredTribe(tribe);
+            character.HasAddedDiscoveredTribe(tribe);
             _playerEventSink.InvokePlayerRefresh();
         }
 
         _logger.LogInformation(
             "Successfully set character {Id}'s level to {LevelId} '{InGameLevelName}' ({LevelName})!",
             character.Data.CharacterId, levelId, levelInfo.InGameName, levelInfo.Name);
+    }
+
+    private void LevelUp()
+    {
+        Ask.GetCharacter(_logger, _accountHandler, _userInfoHandler, out var character, out var user);
+
+        if (character == null || user == null)
+            return;
+
+        _logger.LogInformation("Enter experience level:");
+
+        var level = Console.ReadLine()?.Trim();
+
+        if (!int.TryParse(level, out var levelId))
+        {
+            _logger.LogError("Level has to be an integer");
+            return;
+        }
+
+        if (_handler.IsPlayerOnline(user.UserId, out _, out var player))
+            player.LevelUp(levelId, _logger);
+        else
+            character.SetLevelXp(levelId);
     }
 
     private void GiveItem()
@@ -159,13 +191,13 @@ public class EditCharacter : IService
         if (character == null || user == null)
             return;
 
-        _logger.LogInformation("Enter Item ID:");
+        _logger.LogInformation("Enter item id:");
 
         var item = Console.ReadLine()?.Trim();
 
         if (!int.TryParse(item, out var itemId))
         {
-            _logger.LogError("Item ID has to be an integer");
+            _logger.LogError("Item id has to be an integer");
             return;
         }
 
@@ -195,7 +227,7 @@ public class EditCharacter : IService
         }
         else
         {
-            _logger.LogError("Could not find item with ID {ItemId}", itemId);
+            _logger.LogError("Could not find item with id: '{ItemId}'", itemId);
         }
     }
 }

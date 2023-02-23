@@ -1,7 +1,6 @@
 ﻿using A2m.Server;
 using Microsoft.Extensions.Logging;
 using Server.Reawakened.Configs;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Enums;
@@ -10,6 +9,7 @@ using Server.Reawakened.Players.Helpers;
 using Server.Reawakened.Players.Models;
 using Server.Reawakened.Players.Models.Character;
 using Server.Reawakened.Players.Services;
+using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
 
 namespace Protocols.External._c__CharacterInfoHandler;
@@ -21,9 +21,8 @@ public class CreateCharacter : ExternalProtocol
     public UserInfoHandler UserInfoHandler { get; set; }
     public NameGenSyllables NameGenSyllables { get; set; }
     public ServerStaticConfig ServerConfig { get; set; }
-    public LevelHandler LevelHandler { get; set; }
     public WorldGraph WorldGraph { get; set; }
-    public QuestCatalog QuestCatalog { get; set; }
+    public WorldHandler WorldHandler { get; set; }
     public ILogger<CreateCharacter> Logger { get; set; }
 
     public override void Run(string[] message)
@@ -55,31 +54,28 @@ public class CreateCharacter : ExternalProtocol
         {
             characterData.Allegiance = tribe;
             characterData.CharacterName = string.Join(string.Empty, names);
-            characterData.UserUuid = player.UserInfo.UserId;
-            
+            characterData.UserUuid = player.UserId;
+
             characterData.Registered = true;
-            characterData.LevelUp(1);
-            characterData.CurrentLife = characterData.MaxLife;
 
             var model = new CharacterModel
             {
                 Data = characterData,
-                Level = WorldGraph.ClockTowerId
+                LevelData = new LevelData
+                {
+                    LevelId = WorldGraph.DefaultLevel,
+                    PortalId = 0,
+                    SpawnPointId = 0
+                }
             };
 
-            var welcomeQuests = QuestCatalog.GetQuestLineQuests(QuestCatalog.GetQuestLineData(139));
-            foreach(var quest in welcomeQuests)
-            {
-                if (quest.Tribe == tribe)
-                {
-                    model.AddQuest(quest, true);
-                    break;
-                }
-            }
+            model.SetLevelXp(1);
 
             player.AddCharacter(model);
 
-            player.SendStartPlay(model, NetState, LevelHandler, Logger);
+            var levelInfo = WorldHandler.GetLevelInfo(model.LevelData.LevelId);
+
+            player.SendStartPlay(model, NetState, levelInfo);
         }
     }
 }

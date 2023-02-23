@@ -6,7 +6,10 @@ using Server.Base.Core.Extensions;
 using Server.Base.Core.Helpers;
 using Server.Base.Core.Models;
 using Server.Base.Core.Services;
+using Server.Base.Logging;
+using Server.Base.Network.Enums;
 using Server.Base.Worlds;
+using Server.Reawakened.Network.Services;
 using Server.Reawakened.Players.Events;
 using System.Diagnostics;
 using System.Globalization;
@@ -20,14 +23,16 @@ namespace Web.Launcher.Services;
 public class StartGame : IService
 {
     private readonly IHostApplicationLifetime _appLifetime;
+    private readonly StartConfig _config;
     private readonly ServerConsole _console;
+    private readonly RandomKeyGenerator _generator;
+    private readonly InternalConfig _internalConfig;
     private readonly LauncherStaticConfig _lConfig;
     private readonly ILogger<StartGame> _logger;
+    private readonly PlayerEventSink _playerEventSink;
     private readonly SettingsStaticConfig _sConfig;
-    private readonly StartConfig _config;
     private readonly EventSink _sink;
     private readonly World _world;
-    private readonly PlayerEventSink _playerEventSink;
 
     private string _directory;
     private bool _dirSet, _appStart;
@@ -36,7 +41,9 @@ public class StartGame : IService
     public PackageInformation CurrentVersion { get; private set; }
 
     public StartGame(EventSink sink, LauncherStaticConfig lConfig, SettingsStaticConfig sConfig,
-        IHostApplicationLifetime appLifetime, ILogger<StartGame> logger, ServerConsole console, World world, StartConfig config, PlayerEventSink playerEventSink)
+        IHostApplicationLifetime appLifetime, ILogger<StartGame> logger, ServerConsole console,
+        World world, StartConfig config, PlayerEventSink playerEventSink, RandomKeyGenerator generator,
+        InternalConfig internalConfig)
     {
         _sink = sink;
         _lConfig = lConfig;
@@ -47,6 +54,8 @@ public class StartGame : IService
         _world = world;
         _config = config;
         _playerEventSink = playerEventSink;
+        _generator = generator;
+        _internalConfig = internalConfig;
 
         _dirSet = false;
         _appStart = false;
@@ -54,7 +63,7 @@ public class StartGame : IService
 
     public void Initialize()
     {
-        if (_config.IsHeadless)
+        if (_internalConfig.NetworkType == NetworkType.Server)
         {
             _logger.LogWarning("NOT RESTARTING: SERVER IS HEADLESS");
         }
@@ -77,11 +86,14 @@ public class StartGame : IService
 
     private void GetGameInformation()
     {
-        _console.AddCommand(new ConsoleCommand("runLauncher",
+        _console.AddCommand(
+            "runLauncher",
             "Runs the launcher and hooks it into the current process.",
-            _ => LaunchGame()));
+            NetworkType.Client,
+            _ => LaunchGame()
+        );
 
-        _logger.LogInformation("Getting Game Executable");
+        _logger.LogDebug("Getting the game executable...");
 
         try
         {
@@ -115,7 +127,7 @@ public class StartGame : IService
             break;
         }
 
-        _logger.LogDebug("Got launcher directory: {Directory}", Path.GetDirectoryName(_config.GameSettingsFile));
+        _logger.LogInformation("Launcher Directory: {Directory}", Path.GetDirectoryName(_config.GameSettingsFile));
 
         var lastUpdate = DateTime.ParseExact(CurrentVersion.game.lastUpdate, _lConfig.TimeFilter,
             CultureInfo.InvariantCulture);
@@ -128,6 +140,12 @@ public class StartGame : IService
             _directory = new DirectoryInfo(_directory).Parent?.FullName;
 
         _config.LastClientUpdate = lastUpdate.ToUnixTimestamp();
+
+        if (string.IsNullOrEmpty(_config.AnalyticsApiKey))
+        {
+            _config.AnalyticsApiKey = _generator.GetRandomKey<Analytics>(string.Empty);
+            _logger.LogDebug("Set API key to: {ApiKey}", _config.AnalyticsApiKey);
+        }
 
         _dirSet = true;
 
@@ -150,6 +168,13 @@ public class StartGame : IService
         if (!_appStart || !_dirSet)
             return;
 
+        if (Logger.HasCriticallyErrored())
+        {
+            _logger.LogCritical("Server ran into a critical error during execution. " +
+                                "The game will not start until this is resolved.");
+            return;
+        }
+
         if (_lConfig.OverwriteGameConfig)
             WriteConfig();
 
@@ -160,7 +185,7 @@ public class StartGame : IService
     public void LaunchGame()
     {
         _game = Process.Start(Path.Join(_directory, "launcher", "launcher.exe"));
-        _logger.LogDebug("Running game on process: {GamePath}", _game?.ProcessName);
+        _logger.LogInformation("Running game on process: {GamePath}", _game?.ProcessName);
     }
 
     private void WriteConfig()
@@ -168,7 +193,7 @@ public class StartGame : IService
         var directory = Path.Join(_directory, "game");
         var config = Path.Join(directory, "LocalBuildConfig.xml");
 
-        _logger.LogInformation("Looking For Header In {Directory} Ending In {Header}.", directory,
+        _logger.LogDebug("Looking For Header In {Directory} Ending In {Header}.", directory,
             _lConfig.HeaderFolderFilter);
 
         var parentUri = new Uri(directory);
@@ -188,6 +213,9 @@ public class StartGame : IService
 
         foreach (var item in GetConfigValues(headerFolder))
         {
+            if (string.IsNullOrEmpty(item.Key) || string.IsNullOrEmpty(item.Value))
+                continue;
+
             var xmlItem = new XElement("item");
             xmlItem.Add(new XAttribute("name", item.Key));
             xmlItem.Add(new XAttribute("value", item.Value));
@@ -220,7 +248,7 @@ public class StartGame : IService
         { "leaderboard.domain", $"{_lConfig.BaseUrl}/Apps/" },
         { "analytics.baseurl", $"{_lConfig.BaseUrl}/Analytics/" },
         { "analytics.enabled", _lConfig.AnalyticsEnabled ? "true" : "false" },
-        { "analytics.apikey", _lConfig.AnalyticsApiKey },
+        { "analytics.apikey", _config.AnalyticsApiKey },
         { "project.name", _lConfig.ProjectName }
     };
 }

@@ -1,39 +1,53 @@
 ﻿using Microsoft.Extensions.Logging;
+using Server.Base.Logging;
 using Server.Base.Network;
-using Server.Reawakened.Levels.Models.Entities;
+using Server.Reawakened.Entities.Abstractions;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
+using Server.Reawakened.Rooms.Extensions;
+using System.Text;
 
 namespace Server.Reawakened.Entities;
 
-public class CheckpointControllerEntity : SyncedEntity<CheckpointController>
+public class CheckpointControllerEntity : AbstractTriggerCoop<CheckpointController>
 {
     public int SpawnPoint => EntityData.SpawnpointID;
 
-    public ILogger<CheckpointControllerEntity> Logger { get; set; }
+    public new ILogger<CheckpointControllerEntity> Logger { get; set; }
 
     public override void RunSyncedEvent(SyncEvent syncEvent, NetState netState)
     {
-        var player = netState.Get<Player>();
-        var character = player.GetCurrentCharacter();
-
-        if (character.SpawnPoint == SpawnPoint)
+        base.RunSyncedEvent(syncEvent, netState);
+        
+        if (Room.DefaultSpawn.Index == SpawnPoint)
+        {
+            Logger.LogTrace("Skipped current checkpoint: {SpawnPoint}", SpawnPoint);
             return;
+        }
 
-        var checkpoints = Level.LevelEntities.GetEntities<CheckpointControllerEntity>().Values;
-        var possibleLastCheckpoint = checkpoints.FirstOrDefault(c => c.SpawnPoint == character.SpawnPoint);
-        possibleLastCheckpoint?.TriggerCheckpoint(false, netState, player);
+        var spawns = Room.GetEntities<SpawnPointEntity>()
+            .Values.OrderBy(s => s.Index).ToArray();
 
-        character.SetCharacterSpawn(0, SpawnPoint, Logger);
+        var spawnPoint = spawns.FirstOrDefault(s => s.Index == SpawnPoint);
 
-        TriggerCheckpoint(true, netState, player);
-    }
+        if (spawnPoint != null)
+        {
+            Room.DefaultSpawn = spawnPoint;
+        }
+        else
+        {
+            var sb = new StringBuilder();
 
-    public void TriggerCheckpoint(bool active, NetState netState, Player player)
-    {
-        var trigger = new Trigger_SyncEvent(Id.ToString(), Level.Time, true,
-            player.PlayerId.ToString(), active);
+            sb.AppendLine($"SpawnPoint Index: {SpawnPoint}")
+                .Append($"Possibilities: {string.Join(", ", spawns.Select(s => $"{s.Index} (ID: {s.Id})"))}");
 
-        netState.SendSyncEventToPlayer(trigger);
+            FileLogger.WriteGenericLog<CheckpointController>("failed-checkpoints", "Checkpoint Spawn Failed", sb.ToString(), LoggerType.Warning);
+        }
+
+        //var checkpoints = Room.RoomEntities.GetEntities<CheckpointControllerEntity>().Values;
+        //var possibleLastCheckpoint = checkpoints.FirstOrDefault(c => c.SpawnPoint == character.SpawnPoint);
+        //possibleLastCheckpoint?.TriggerCheckpoint(false, netState, player);
+
+        //TriggerCheckpoint(true, netState, player);
     }
 }

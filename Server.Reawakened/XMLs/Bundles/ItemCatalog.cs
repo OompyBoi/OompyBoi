@@ -26,7 +26,11 @@ public class ItemCatalog : ItemHandler, ILocalizationXml
 
     public void EditXml(XmlDocument xml) => AddCategoryPet(xml);
 
-    public void ReadXml(string xml) => ReadDescriptionXml(xml);
+    public void ReadLocalization(string xml) => ReadLocalizationXml(xml);
+
+    public void EditDescription(XmlDocument xml)
+    {
+    }
 
     public void EditLocalization(XmlDocument xml) => AddLocalizationText(xml);
     public void ReadLocalization(string xml) => ReadLocalizationXml(xml);

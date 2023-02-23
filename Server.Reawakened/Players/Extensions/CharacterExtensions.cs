@@ -1,30 +1,32 @@
 ﻿using A2m.Server;
 using Microsoft.Extensions.Logging;
 using Server.Base.Network;
-using Server.Reawakened.Levels.Services;
 using Server.Reawakened.Network.Extensions;
 using Server.Reawakened.Players.Helpers;
 using Server.Reawakened.Players.Models;
 using Server.Reawakened.Players.Models.Character;
+using Server.Reawakened.Players.Models.Protocol;
+using Server.Reawakened.Rooms.Services;
 using WorldGraphDefines;
 
 namespace Server.Reawakened.Players.Extensions;
 
 public static class CharacterExtensions
 {
-    public static bool HasDiscoveredTribe(this CharacterDataModel characterData, TribeType tribe)
+    public static bool HasDiscoveredTribe(this CharacterModel characterData, TribeType tribe)
     {
         if (characterData == null) return false;
 
-        if (characterData.TribesDiscovered.TryGetValue(tribe, out var discovered))
+        // ReSharper disable once InvertIf
+        if (characterData.Data.TribesDiscovered.TryGetValue(tribe, out var discovered))
             if (discovered)
                 return true;
 
-        return characterData.Allegiance == tribe;
+        return characterData.Data.Allegiance == tribe;
     }
 
-    public static CharacterModel GetCurrentCharacter(this Player player)
-        => player.UserInfo.Characters[player.CurrentCharacter];
+    public static CharacterModel GetCurrentCharacter(this Player player) =>
+        player.UserInfo.Characters.TryGetValue(player.CurrentCharacter, out var value) ? value : null;
 
     public static CharacterModel GetCharacterFromName(this Player player, string characterName)
         => player.UserInfo.Characters.Values
@@ -48,43 +50,61 @@ public static class CharacterExtensions
             : string.Empty;
     }
 
-    public static void LevelUp(this CharacterDataModel characterData, int level)
+    public static void SetLevelXp(this CharacterModel characterData, int level)
     {
-        characterData.GlobalLevel = level;
+        characterData.Data.GlobalLevel = level;
 
-        characterData.ReputationForCurrentLevel = GetReputationForLevel(level - 1);
-        characterData.ReputationForNextLevel = GetReputationForLevel(level);
-        characterData.Reputation = 0;
+        characterData.Data.ReputationForCurrentLevel = GetReputationForLevel(level - 1);
+        characterData.Data.ReputationForNextLevel = GetReputationForLevel(level);
+        characterData.Data.Reputation = 0;
 
-        characterData.MaxLife = GetHealthForLevel(level);
+        characterData.Data.MaxLife = GetHealthForLevel(level);
+        characterData.Data.CurrentLife = characterData.Data.MaxLife;
+    }
+
+    public static void LevelUp(this Player player, int level, Microsoft.Extensions.Logging.ILogger logger)
+    {
+        var character = player.GetCurrentCharacter();
+
+        var levelUpData = new LevelUpDataModel
+        {
+            Level = level
+        };
+
+        SetLevelXp(character, level);
+
+        player.CurrentRoom.SendLevelUp(player, levelUpData);
+
+        logger.LogTrace("{Name} leveled up to {Level}", character.Data.CharacterName, level);
     }
 
     private static int GetHealthForLevel(int level) => (level - 1) * 270 + 81;
 
     private static int GetReputationForLevel(int level) => (Convert.ToInt32(Math.Pow(level, 2)) - (level - 1)) * 500;
-    
+
     public static void DiscoverTribe(this NetState state, TribeType tribe)
     {
         var player = state.Get<Player>();
         var character = player.GetCurrentCharacter();
 
-        if (HasAddedDiscoveredTribe(character.Data, tribe))
+        if (HasAddedDiscoveredTribe(character, tribe))
             state.SendXt("cB", (int)tribe);
     }
 
-    public static bool HasAddedDiscoveredTribe(this CharacterDataModel characterData, TribeType tribe)
+    public static bool HasAddedDiscoveredTribe(this CharacterModel characterData, TribeType tribe)
     {
-        if (characterData.TribesDiscovered.ContainsKey(tribe))
+        if (characterData.Data.TribesDiscovered.ContainsKey(tribe))
         {
-            if (characterData.TribesDiscovered[tribe])
+            if (characterData.Data.TribesDiscovered[tribe])
                 return false;
 
-            characterData.TribesDiscovered[tribe] = true;
+            characterData.Data.TribesDiscovered[tribe] = true;
         }
         else
         {
-            characterData.TribesDiscovered.Add(tribe, true);
+            characterData.Data.TribesDiscovered.Add(tribe, true);
         }
+
         return true;
     }
 
@@ -101,7 +121,7 @@ public static class CharacterExtensions
         state.SendXt("ca", charData.Cash, charData.NCash);
     }
 
-    public static void SendLevelChange(this Player player, NetState netState, LevelHandler levelHandler,
+    public static void SendLevelChange(this Player player, NetState netState, WorldHandler worldHandler,
         WorldGraphXML worldGraph)
     {
         var error = string.Empty;
@@ -110,10 +130,9 @@ public static class CharacterExtensions
 
         try
         {
-            var level = player.GetCurrentLevel(levelHandler);
-
-            levelName = level.LevelInfo.Name;
-            surroundingLevels = GetSurroundingLevels(level.LevelInfo, worldGraph);
+            var levelInfo = worldHandler.GetLevelInfo(player.GetLevelId());
+            levelName = levelInfo.Name;
+            surroundingLevels = GetSurroundingLevels(levelInfo, worldGraph);
         }
         catch (Exception e)
         {
@@ -138,12 +157,19 @@ public static class CharacterExtensions
         return sb.ToString();
     }
 
-    public static void SetCharacterSpawn(this CharacterModel character, int portalId, int spawnId,
+    public static void SetLevel(this CharacterModel character, int levelId,
+        Microsoft.Extensions.Logging.ILogger logger) =>
+        character.SetLevel(levelId, 0, 0, logger);
+
+    public static void SetLevel(this CharacterModel character, int levelId, int portalId, int spawnId,
         Microsoft.Extensions.Logging.ILogger logger)
     {
-        character.PortalId = portalId;
-        character.SpawnPoint = spawnId;
-        logger.LogDebug("Set spawn of '{CharacterName}' to portal {PortalId} spawn {SpawnId}", character.Data.CharacterName,
+        character.LevelData.LevelId = levelId;
+        character.LevelData.PortalId = portalId;
+        character.LevelData.SpawnPointId = spawnId;
+
+        logger.LogDebug("Set spawn of '{CharacterName}' to portal {PortalId} spawn {SpawnId}",
+            character.Data.CharacterName,
             portalId, spawnId);
     }
 
