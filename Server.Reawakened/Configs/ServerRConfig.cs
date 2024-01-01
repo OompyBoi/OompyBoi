@@ -26,6 +26,7 @@ public class ServerRConfig : IRConfig
     public string LevelSaveDirectory { get; }
     public string LevelDataSaveDirectory { get; }
     public string DataDirectory { get; }
+    public string XMLDirectory { get; }
 
     public string[] DefaultProtocolTypeIgnore { get; }
 
@@ -61,6 +62,7 @@ public class ServerRConfig : IRConfig
         LevelSaveDirectory = InternalDirectory.GetDirectory("XMLs/Levels");
         LevelDataSaveDirectory = InternalDirectory.GetDirectory("XMLs/LevelData");
         DataDirectory = InternalDirectory.GetDirectory("XMLs/FormattedData");
+        XMLDirectory = InternalDirectory.GetDirectory("XMLs/XMLFiles");
 
         RoomTickRate = 32;
 

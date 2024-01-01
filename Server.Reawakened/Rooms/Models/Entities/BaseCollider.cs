@@ -30,8 +30,18 @@ public class BaseCollider
         Position = new Vector3(position.X, position.Y, position.Z);
         Plane = plane;
         IsAttackBox = false;
-        ColliderBox = new RectModel(position.X, position.Y, sizeX, sizeY);
+        ColliderBox = new RectModel(position.X-0.5f, position.Y, sizeX, sizeY);
         Room = room;
+    }
+    public BaseCollider(Collider collider, Room room)
+    {
+        Id = 0;
+        Position = new Vector3(collider.Position.x, collider.Position.y, 0);
+        Plane = collider.Plane;
+        IsAttackBox = false;
+        ColliderBox = new RectModel(Position.x, Position.y+0.1f, collider.Width, collider.Height);
+        Room = room;
+        Console.WriteLine("Collider initialized at (" + Position.x + ", " + Position.y + ") on plane " + Plane + " with dimensions (" + collider.Width + ", "+collider.Height + ")");
     }
 
     public void Update()

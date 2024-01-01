@@ -12,6 +12,7 @@ using Server.Reawakened.Rooms.Enums;
 using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Models.Entities;
 using Server.Reawakened.Rooms.Models.Planes;
+using Server.Reawakened.XMLs.BundlesInternal;
 using WorldGraphDefines;
 using Timer = Server.Base.Timers.Timer;
 
@@ -34,13 +35,11 @@ public class Room : Timer
     public readonly Dictionary<int, List<string>> UnknownEntities;
 
     public SpawnPointComp DefaultSpawn { get; set; }
-
     public SpawnPointComp CheckpointSpawn { get; set; }
     public int CheckpointId { get; set; }
     public LevelInfo LevelInfo => _level.LevelInfo;
     public long TimeOffset { get; set; }
     public float Time => (float)((GetTime.GetCurrentUnixMilliseconds() - TimeOffset) / 1000.0);
-    public int ProjectileCount;
 
     public Room(
         int roomId, Level level, ServerRConfig config, TimerThread timerThread,
@@ -64,8 +63,7 @@ public class Room : Timer
         Planes = LevelInfo.LoadPlanes(_config);
         Entities = this.LoadEntities(services, out UnknownEntities);
         Projectiles = new Dictionary<int, ProjectileEntity>();
-        Colliders = this.LoadColliders();
-
+        Colliders = this.LoadColliders(LevelInfo, _config);
         foreach (var gameObjectId in Planes.Values
                      .Select(x => x.GameObjects.Values)
                      .SelectMany(x => x)
