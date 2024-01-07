@@ -1,47 +1,96 @@
 ﻿using A2m.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Server.Base.Core.Extensions;
 using Server.Reawakened.XMLs.Abstractions;
 using Server.Reawakened.XMLs.Bundles;
 using Server.Reawakened.XMLs.Enums;
 using Server.Reawakened.XMLs.Extensions;
+using System.Reflection;
 using System.Xml;
 
 namespace Server.Reawakened.XMLs.BundlesInternal;
 
-public class ItemCatalogInt : IBundledXml
+public class ItemCatalogInt : ItemHandler, IBundledXml, ILocalizationXml
 {
     public string BundleName => "ItemCatalogInt";
+    public string LocalizationName => "ItemCatalogIntDict_en-US";
     public BundlePriority Priority => BundlePriority.High;
 
     public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
     public IServiceProvider Services { get; set; }
 
-    public List<ItemDescription> Items;
+    private Dictionary<string, int> _itemNameDict;
+    private Dictionary<ItemCategory, XmlNode> _itemCategories;
+    private Dictionary<ItemCategory, Dictionary<ItemSubCategory, XmlNode>> _itemSubCategories;
+
+    public Dictionary<int, ItemDescription> Items;
     public Dictionary<int, string> Descriptions;
 
-    public ItemCatalogInt()
+    public ItemCatalogInt() : base(null)
     {
     }
 
     public void InitializeVariables()
     {
+        this.SetField<ItemHandler>("_isDisposed", false);
+        this.SetField<ItemHandler>("_initDescDone", false);
+        this.SetField<ItemHandler>("_initLocDone", false);
+
+        this.SetField<ItemHandler>("_localizationDict", new Dictionary<int, string>());
+        this.SetField<ItemHandler>("_itemDescriptionCache", new Dictionary<int, ItemDescription>());
+        this.SetField<ItemHandler>("_pendingRequests", new Dictionary<int, ItemDescriptionRequest>());
+
+        _itemNameDict = [];
+        _itemCategories = [];
+        _itemSubCategories = [];
+
         Items = [];
-        Descriptions = [];
     }
+
+    public void EditLocalization(XmlDocument xml)
+    {
+        _itemNameDict.Clear();
+
+        var dicts = xml.SelectNodes("/ItemCatalogDict/text");
+
+        if (dicts != null)
+        {
+            ReadLocalizationXml(xml.WriteToString());
+
+            foreach (XmlNode aNode in dicts)
+            {
+                if (aNode.Attributes == null)
+                    continue;
+
+                var idAttribute = aNode.Attributes["id"];
+
+                if (idAttribute == null)
+                    continue;
+
+                var local = int.Parse(idAttribute.InnerText);
+
+                _itemNameDict.TryAdd(aNode.InnerText, local);
+            }
+
+            foreach (XmlNode itemCatalogNode in xml.ChildNodes)
+            {
+                if (!(itemCatalogNode.Name == "ItemCatalogDict")) continue;
+            }
+        }
+    }
+
+    public void ReadLocalization(string xml) =>
+           ReadLocalizationXml(xml.ToString());
 
     public void EditDescription(XmlDocument xml)
     {
-    }
+        _itemCategories.Clear();
+        _itemSubCategories.Clear();
 
-    public void ReadDescription(string xml)
-    {
-        var miscDict = Services.GetRequiredService<MiscTextDictionary>();
+        var items = new Dictionary<int, string>();
 
-        var xmlDocument = new XmlDocument();
-        xmlDocument.LoadXml(xml);
-
-        foreach (XmlNode catalogs in xmlDocument.ChildNodes)
+        foreach (XmlNode catalogs in xml.ChildNodes)
         {
             if (!(catalogs.Name == "Catalog")) continue;
 
@@ -52,220 +101,65 @@ public class ItemCatalogInt : IBundledXml
                 var itemCategory = ItemCategory.Unknown;
 
                 foreach (XmlAttribute categoryAttributes in category.Attributes)
-                    if (categoryAttributes.Name == "name")
-                        itemCategory = itemCategory.GetEnumValue(categoryAttributes.Value, Logger);
+                    if (categoryAttributes.Name == "id")
+                        itemCategory = (ItemCategory)int.Parse(categoryAttributes.Value);
+
+                _itemCategories.TryAdd(itemCategory, category);
+                _itemSubCategories.TryAdd(itemCategory, []);
 
                 foreach (XmlNode subCategories in category.ChildNodes)
                 {
-                    if (!(subCategories.Name == "ItemSubCategory")) continue;
+                    if (!(subCategories.Name == "ItemSubcategory")) continue;
 
                     var subCategory = ItemSubCategory.Unknown;
 
                     foreach (XmlAttribute subCategoryAttributes in subCategories.Attributes)
-                        if (subCategoryAttributes.Name == "name")
-                            subCategory = subCategory.GetEnumValue(subCategoryAttributes.Value, Logger);
+                        if (subCategoryAttributes.Name == "id")
+                            subCategory = (ItemSubCategory)int.Parse(subCategoryAttributes.Value);
+
+                    _itemSubCategories[itemCategory].TryAdd(subCategory, subCategories);
 
                     foreach (XmlNode item in subCategories.ChildNodes)
                     {
                         if (!(item.Name == "Item")) continue;
 
-                        var itemId = -1;
-                        var itemName = string.Empty;
-                        var descriptionId = 0;
-                        var prefabName = string.Empty;
-                        var specialDisplayPrefab = string.Empty;
-                        var tribe = TribeType.Unknown;
-                        var rarity = ItemRarity.Unknown;
-                        var memberOnly = false;
-
-                        var currency = CurrencyType.Unknown;
-                        var storeType = StoreType.Invalid;
-                        var stockPriority = 0;
-                        var regularPrice = 0;
-                        var discountPrice = 0;
-                        var sellPrice = 0;
-                        var sellCount = 0;
-                        var discountedFrom = new DateTime(0L);
-                        var discountedTo = new DateTime(0L);
-
-                        var actionType = ItemActionType.None;
-                        var cooldownTime = 0f;
-                        var delayUseDuration = 0;
-                        var binding = ItemBinding.Unknown;
-
-                        var level = -1;
-                        var levelRequirement = -1;
-
-                        var itemEffects = new List<ItemEffect>();
-
-                        var uniqueInInventory = false;
-
-                        var lootId = -1;
-                        var recipeParentItemId = -1;
-
-                        var productionStatus = ProductionStatus.Unknown;
-                        var releaseDate = DateTime.UnixEpoch;
+                        var id = -1;
+                        var name = string.Empty;
 
                         foreach (XmlAttribute itemAttributes in item.Attributes)
+                        {
                             switch (itemAttributes.Name)
                             {
-                                case "itemId":
-                                    itemId = int.Parse(itemAttributes.Value);
+                                case "id":
+                                    id = int.Parse(itemAttributes.Value);
                                     break;
-
-                                case "itemName":
-                                    itemName = itemAttributes.Value;
-                                    break;
-                                case "descriptionId":
-                                    descriptionId = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "prefabName":
-                                    prefabName = itemAttributes.Value;
-                                    break;
-                                case "specialDisplayPrefab":
-                                    specialDisplayPrefab = itemAttributes.Value;
-                                    break;
-                                case "tribe":
-                                    tribe = tribe.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "rarity":
-                                    rarity = rarity.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "memberOnly":
-                                    memberOnly = memberOnly.GetBoolValue(itemAttributes.Value, Logger);
-                                    break;
-
-                                case "currency":
-                                    currency = currency.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "regularPrice":
-                                    regularPrice = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "sellPrice":
-                                    sellPrice = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "sellCount":
-                                    sellCount = int.Parse(itemAttributes.Value);
-                                    break;
-
-                                case "actionType":
-                                    actionType = actionType.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "cooldownTime":
-                                    cooldownTime = float.Parse(itemAttributes.Value);
-                                    break;
-                                case "delayUseDuration":
-                                    delayUseDuration = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "binding":
-                                    binding = binding.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-
-                                case "level":
-                                    level = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "levelRequirement":
-                                    levelRequirement = int.Parse(itemAttributes.Value);
-                                    break;
-
-                                case "uniqueInInventory":
-                                    uniqueInInventory = uniqueInInventory.GetBoolValue(itemAttributes.Value, Logger);
-                                    break;
-
-                                case "storeType":
-                                    storeType = storeType.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "discountedFrom":
-                                    discountedFrom = discountedFrom.GetDateValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "discountedTo":
-                                    discountedTo = discountedTo.GetDateValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "discountPrice":
-                                    discountPrice = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "stockPriority":
-                                    stockPriority = int.Parse(itemAttributes.Value);
-                                    break;
-
-                                case "lootId":
-                                    lootId = int.Parse(itemAttributes.Value);
-                                    break;
-                                case "recipeParentItemId":
-                                    recipeParentItemId = int.Parse(itemAttributes.Value);
-                                    break;
-
-                                case "productionStatus":
-                                    productionStatus = productionStatus.GetEnumValue(itemAttributes.Value, Logger);
-                                    break;
-                                case "releaseDate":
-                                    releaseDate = releaseDate.GetDateValue(itemAttributes.Value, Logger);
+                                case "name":
+                                    name = itemAttributes.Value;
                                     break;
                             }
-
-                        foreach (XmlNode itemEffect in item.ChildNodes)
-                        {
-                            if (itemEffect.Name != "ItemEffects") continue;
-
-                            foreach (XmlNode effect in itemEffect.ChildNodes)
-                            {
-                                if (effect.Name != "Effect") continue;
-
-                                var type = ItemEffectType.Unknown;
-                                var value = -1;
-                                var duration = -1;
-
-                                foreach (XmlAttribute effectAttributes in effect.Attributes)
-                                    switch (effectAttributes.Name)
-                                    {
-                                        case "type":
-                                            type = type.GetEnumValue(effectAttributes.Value, Logger);
-                                            break;
-                                        case "value":
-                                            value = int.Parse(effectAttributes.Value);
-                                            break;
-                                        case "duration":
-                                            duration = int.Parse(effectAttributes.Value);
-                                            break;
-                                    }
-                                itemEffects.Add(new ItemEffect(type, value, duration));
-                            }
                         }
 
-                        if (!miscDict.LocalizationDict.TryGetValue(descriptionId, out var description))
-                        {
-                            Logger.LogError("Could not find description of id {DescId} for item {ItemName}", descriptionId, itemName);
-                            continue;
-                        }
-
-                        Descriptions.TryAdd(descriptionId, description);
-
-                        var nameId = miscDict.LocalizationDict.FirstOrDefault(x => x.Value == itemName);
-
-                        if (string.IsNullOrEmpty(nameId.Value))
-                        {
-                            Logger.LogError("Could not find name for item {ItemName} in misc dictionary", itemName);
-                            continue;
-                        }
-
-                        Descriptions.Add(nameId.Key, nameId.Value);
-
-                        if (!string.IsNullOrEmpty(prefabName))
-                            Items.Add(new ItemDescription(itemId,
-                                tribe, itemCategory, subCategory, actionType,
-                                (int)rarity, currency, regularPrice, sellPrice, sellCount,
-                                specialDisplayPrefab, itemName, description, prefabName,
-                                cooldownTime, binding, level, levelRequirement, itemEffects, uniqueInInventory,
-                                storeType, discountedFrom, discountedTo, discountPrice, stockPriority, lootId,
-                                productionStatus, recipeParentItemId, releaseDate, memberOnly, delayUseDuration
-                            ));
+                        items.Add(id, name);
                     }
                 }
             }
+            var smallestItemId = 0;
         }
+    }
+
+    public void ReadDescription(string xml)
+    {
+        ReadDescriptionXml(xml);
     }
 
     public void FinalizeBundle()
     {
+        var field = typeof(GameGlobals).GetField("_itemHandler",
+        BindingFlags.Static |
+        BindingFlags.NonPublic);
+
+        field.SetValue(null, this);
+
+        Items = (Dictionary<int, ItemDescription>)this.GetField<ItemHandler>("_itemDescriptionCache");
     }
 }

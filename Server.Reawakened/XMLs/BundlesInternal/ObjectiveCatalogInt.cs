@@ -58,7 +58,7 @@ public class ObjectiveCatalogInt : IBundledXml
             }
         }
 
-        var itemCatalog = Services.GetRequiredService<ItemCatalog>();
+        var itemCatalog = Services.GetRequiredService<ItemCatalogInt>();
 
         foreach (var item in itemCatalog.Items.Values)
             ObjectivePrefabs.TryAdd(item.PrefabName, item.ItemId.ToString());

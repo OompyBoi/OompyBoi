@@ -13,7 +13,7 @@ namespace Server.Reawakened.Entities.Components;
 
 public class BreakableEventControllerComp : Component<BreakableEventController>
 {
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
     public LootCatalogInt LootCatalog { get; set; }
     public ILogger<BreakableEventControllerComp> Logger { get; set; }
 

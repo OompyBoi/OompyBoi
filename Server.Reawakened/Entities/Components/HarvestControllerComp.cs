@@ -11,7 +11,7 @@ namespace Server.Reawakened.Entities.Components;
 public class HarvestControllerComp : Component<HarvestController>
 {
     public bool Collected;
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
     public QuestCatalog QuestCatalog { get; set; }
     public ObjectiveCatalogInt ObjectiveCatalog { get; set; }
     public LootCatalogInt LootCatalog { get; set; }

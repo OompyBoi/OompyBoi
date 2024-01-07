@@ -1,7 +1,7 @@
 ﻿using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Models.Character;
-using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 
 namespace Protocols.External._i__InventoryHandler;
 
@@ -9,7 +9,7 @@ public class EquipItem : ExternalProtocol
 {
     public override string ProtocolName => "ie";
 
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
 
     public override void Run(string[] message)
     {

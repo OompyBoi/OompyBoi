@@ -15,12 +15,13 @@ using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 using System.Text.RegularExpressions;
-using static LeaderBoardTopScoresJson;
+//using static LeaderBoardTopScoresJson;
 
 namespace Server.Reawakened.Chat.Services;
 
-public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config, ILogger<ServerConsole> logger,
+public partial class ChatCommands(ItemCatalogInt itemCatalog, ServerRConfig config, ILogger<ServerConsole> logger,
     WorldHandler worldHandler, WorldGraph worldGraph, IHostApplicationLifetime appLifetime, AutoSave saves) : IService
 {
     private readonly Dictionary<string, ChatCommand> commands = [];
@@ -33,7 +34,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
 
         AddCommand(new ChatCommand("changeName", "[first] [middle] [last]", ChangeName));
         AddCommand(new ChatCommand("unlockHotbar", "[petSlot 1 (true) / 0 (false)]", AddHotbar));
-        AddCommand(new ChatCommand("giveItem", "[itemId] [amount]", AddItem));
+        AddCommand(new ChatCommand("item", "[itemId] [amount]", AddItem));
         AddCommand(new ChatCommand("badgePoints", "[badgePoints]", BadgePoints));
         AddCommand(new ChatCommand("tp", "[X] [Y] [backPlane]", Teleport));
         AddCommand(new ChatCommand("levelUp", "[newLevel]", LevelUp));
@@ -44,10 +45,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         AddCommand(new ChatCommand("openDoors", "", OpenDoors));
         AddCommand(new ChatCommand("godmode", "", GodMode));
         AddCommand(new ChatCommand("save", "", SaveLevel));
-        AddCommand(new ChatCommand("openVines", "", OpenVines));
-        AddCommand(new ChatCommand("getPlayerId", "[id]", GetPlayerId));
-        //AddCommand(new ChatCommand("forceSpawners", "", ForceSpawners));
-        //AddCommand(new ChatCommand("getRoomEntityList", "", GetRoomEntityList));
+        AddCommand(new ChatCommand("giveAllItems", "", GiveAllItems));
 
         logger.LogInformation("See chat commands by running {ChatCharStart}help", config.ChatCommandStart);
     }
@@ -410,6 +408,23 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         return true;
     }
 
+    private bool GiveAllItems(Player player, string[] args)
+    {
+        var character = player.Character;
+
+        for (int i = 0; i < 10000; i++)
+        {
+            var item = itemCatalog.GetItemFromId(i);
+            if (item != null)
+                character.AddItem(item, 1);
+        }
+        
+        player.SendUpdatedInventory(false);
+
+        Log($"{character.Data.CharacterName} received all ingame items", player);
+
+        return true;
+    }
     private bool GetPlayerId(Player player, string[] args)
     {
         Log($"{player.CharacterName} has id of {player.GameObjectId}", player);

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Server.Base.Core.Abstractions;
 using Server.Base.Core.Extensions;
 using Server.Base.Core.Services;
-using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 using System.Collections;
 using System.Collections.Specialized;
 using Web.AssetBundles.Events;
@@ -14,7 +14,7 @@ using Web.Icons.Configs;
 namespace Web.Icons.Services;
 
 public class ExtractIcons(AssetEventSink sink, IconsRConfig rConfig, IconsRwConfig rwConfig, AssetBundleRwConfig aRwConfig,
-    ILogger<ExtractIcons> logger, IServiceProvider services, ServerHandler serverHandler, ItemCatalog itemCatalog) : IService
+    ILogger<ExtractIcons> logger, IServiceProvider services, ServerHandler serverHandler, ItemCatalogInt itemCatalog) : IService
 {
     public void Initialize() => sink.AssetBundlesLoaded += ExtractAllIcons;
 

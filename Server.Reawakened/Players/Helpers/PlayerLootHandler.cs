@@ -11,7 +11,7 @@ namespace Server.Reawakened.Players.Helpers;
 public static class PlayerLootHandler
 {
     public static void GrantLoot(this Player player, int gameObjectId, LootCatalogInt lootCatalog,
-        ItemCatalog itemCatalog, Microsoft.Extensions.Logging.ILogger logger)
+        ItemCatalogInt itemCatalog, Microsoft.Extensions.Logging.ILogger logger)
     {
         var loot = lootCatalog.GetLootById(gameObjectId);
         if (loot.ObjectId <= 0)
@@ -36,7 +36,7 @@ public static class PlayerLootHandler
         player.AddBananas(totalBananas);
     }
 
-    private static void GrantLootItems(this List<ItemReward> items, int objectId, Player player, ItemCatalog itemCatalog, bool doWheel, int weightRange)
+    private static void GrantLootItems(this List<ItemReward> items, int objectId, Player player, ItemCatalogInt itemCatalog, bool doWheel, int weightRange)
     {
         var random = new Random();
 

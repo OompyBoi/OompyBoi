@@ -5,11 +5,12 @@ using Server.Base.Core.Services;
 using Server.Base.Network.Enums;
 using Server.Reawakened.Configs;
 using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 
 namespace Web.AssetBundles.Services;
 
 public class GetXmlData(ServerConsole serverConsole, ILogger<GetXmlData> logger,
-    ServerRConfig config, WorldGraph worldGraph, ItemCatalog itemCatalog,
+    ServerRConfig config, WorldGraph worldGraph, ItemCatalogInt itemCatalog,
     BuildAssetList assets, BuildLevelFiles levelFiles) : IService
 {
     public void Initialize()

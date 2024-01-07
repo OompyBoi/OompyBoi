@@ -1,12 +1,12 @@
 ﻿using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players.Extensions;
-using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 
 namespace Protocols.External._i__InventoryHandler;
 
 public class RemoveItem : ExternalProtocol
 {
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
 
     public override string ProtocolName => "ir";
 

@@ -27,8 +27,7 @@ public class WorldGraph : WorldGraphXML, IBundledXml
         this.SetField<WorldGraphXML>("_levelNameToID", new Dictionary<string, int>());
         this.SetField<WorldGraphXML>("_levelInfos", new Dictionary<int, LevelInfo>());
 
-        DefaultLevel =
-            int.Parse(this.GetField<WorldGraphXML>("CLOCK_TOWER_SQUARE_LEVEL_ID").ToString() ?? string.Empty);
+        DefaultLevel = 47;
         NewbZone = 452;
         WorldGraphNodes = [];
     }

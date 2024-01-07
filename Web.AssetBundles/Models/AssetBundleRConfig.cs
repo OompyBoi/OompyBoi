@@ -84,7 +84,7 @@ public class AssetBundleRConfig : IRConfig
 
         VirtualGoods =
         [
-            "ItemCatalog",
+            "ItemCatalogInt",
             "PetAbilities",
             "UserGiftMessage",
             "vendor_catalogs",

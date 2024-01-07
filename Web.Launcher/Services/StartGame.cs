@@ -113,7 +113,7 @@ public class StartGame(EventSink sink, IHostApplicationLifetime appLifetime, ILo
 
         if (string.IsNullOrEmpty(lWConfig.AnalyticsApiKey))
         {
-            lWConfig.AnalyticsApiKey = generator.GetRandomKey<Analytics>(string.Empty);
+            lWConfig.AnalyticsApiKey = generator.GetRandomKey<GoogleAnalytics>(string.Empty);
             logger.LogDebug("Set API key to: {ApiKey}", lWConfig.AnalyticsApiKey);
         }
 

@@ -10,11 +10,6 @@ namespace Server.Reawakened.Entities.Components;
 public class PortalControllerComp : Component<PortalController>
 {
     public string OverrideCondition => ComponentData.OverrideCondition;
-    public bool LaunchMinigame => ComponentData.LaunchMinigame;
-    public string TimedEventId => ComponentData.timedEventId;
-    public string TimedEventPortalObjectName => ComponentData.TimedEventPortalObjectName;
-    public string TimedEventPortalOnAnim => ComponentData.TimedEventPortalOnAnim;
-    public string TimedEventPortalOffAnim => ComponentData.TimedEventPortalOffAnim;
 
     public WorldGraph WorldGraph { get; set; }
     public WorldHandler WorldHandler { get; set; }

@@ -4,7 +4,7 @@ using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Helpers;
-using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 
 namespace Protocols.External._C__CashShopHandler;
 
@@ -12,7 +12,7 @@ public class GiftItemShop : ExternalProtocol
 {
     public override string ProtocolName => "Cg";
 
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
     public PlayerHandler PlayerHandler { get; set; }
     public ILogger<GiftItemShop> Logger { get; set; }
 

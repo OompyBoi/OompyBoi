@@ -12,7 +12,7 @@ public class ChestControllerComp : BaseChestControllerComp<ChestController>
 {
     public bool Collected;
 
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
 
     public ILogger<ChestControllerComp> Logger { get; set; }
 

@@ -16,7 +16,7 @@ public class UseItem : ExternalProtocol
     public ILogger<UseItem> Logger { get; set; }
 
     public VendorCatalog VendorCatalog { get; set; }
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
     public RecipeCatalogInt RecipeCatalog { get; set; }
 
     public override void Run(string[] message)
@@ -47,16 +47,15 @@ public class UseItem : ExternalProtocol
                 break;
             case ItemSubCategory.SuperPack:
 
-                foreach (var pair in VendorCatalog.GetSuperPacksItemQuantityMap(itemId))
+                foreach (var pair in VendorCatalog.GetSuperPacksItemsID(itemId))
                 {
-                    var packItem = ItemCatalog.GetItemFromId(pair.Key);
+                    var packItem = ItemCatalog.GetItemFromId(pair);
 
                     if (packItem == null)
                         continue;
 
-                    character.AddItem(packItem, pair.Value);
+                    character.AddItem(packItem, 3);
                 }
-
                 break;
             default:
                 Logger.LogWarning("Could not find use for item {ItemId}, type {ItemType}.",

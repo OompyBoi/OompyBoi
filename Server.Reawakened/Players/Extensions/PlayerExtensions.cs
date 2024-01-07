@@ -77,7 +77,7 @@ public static class PlayerExtensions
         player.SendXt("cp", charData.Reputation, charData.ReputationForNextLevel);
     }
 
-    public static void TradeWithPlayer(this Player origin, ItemCatalog catalog)
+    public static void TradeWithPlayer(this Player origin, ItemCatalogInt catalog)
     {
         var tradeModel = origin.TempData.TradeModel;
 

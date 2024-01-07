@@ -6,6 +6,7 @@
     </Vendor>
     <Vendor objectId="1167" name="Mogri" descriptionId="0" numberOfIdolsToAccessBackStore="0" idolLevelId="0" vendorType="Pets" dialogId="1090" greetingConversationId="3028" leavingConversationId="3027">
         <Item prefabName="PF_PET_Rig01_Pheonix01d" />
+        <Item prefabName="Add_COM_KidBoy01_S01" />
     </Vendor>
     <Vendor objectId="615" name="Altak" descriptionId="0" numberOfIdolsToAccessBackStore="0" idolLevelId="0" vendorType="Traveler" dialogId="1018" greetingConversationId="2795" leavingConversationId="2794">
         <Item prefabName="Col_POT_ExperiencePotion02" />

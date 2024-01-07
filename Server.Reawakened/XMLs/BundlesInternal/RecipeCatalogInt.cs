@@ -26,7 +26,7 @@ public class RecipeCatalogInt : IBundledXml
 
     public void ReadDescription(string xml)
     {
-        var itemCatalog = Services.GetRequiredService<ItemCatalog>();
+        var itemCatalog = Services.GetRequiredService<ItemCatalogInt>();
 
         var xmlDocument = new XmlDocument();
         xmlDocument.LoadXml(xml);

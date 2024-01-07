@@ -2,6 +2,7 @@
 using Server.Base.Core.Abstractions;
 using Server.Base.Core.Extensions;
 using Server.Reawakened.XMLs.Abstractions;
+using System.IO;
 using System.Xml;
 using Web.AssetBundles.Events;
 using Web.AssetBundles.Events.Arguments;
@@ -88,6 +89,13 @@ public class BuildXmlFiles(AssetEventSink eventSink, IServiceProvider services,
                     bundles.Remove(localizedAsset.Name);
 
                     XmlFiles.Add(localizedAsset.Name, locPath);
+
+                    if (localizedAsset.Name.Equals("ItemCatalogIntDict_en-US"))
+                    {
+                        File.Delete(Path.Join(rConfig.XmlSaveDirectory, "ItemCatalogDict_en-US.xml"));
+                        File.WriteAllText(Path.Join(rConfig.XmlSaveDirectory, "ItemCatalogDict_en-US.xml"), localizedXml);
+                        XmlFiles.Add("ItemCatalogDict_en-US", locPath);
+                    }
                 }
 
                 var xml = new XmlDocument();
@@ -107,9 +115,16 @@ public class BuildXmlFiles(AssetEventSink eventSink, IServiceProvider services,
             {
                 var path = Path.Join(rConfig.XmlSaveDirectory, $"{asset.Name}.xml");
 
-                File.WriteAllText(path, text);
-
-                XmlFiles.Add(asset.Name, path);
+                if (!(asset.Name.Equals("ItemCatalog") || asset.Name.Equals("ItemCatalogDict_en-US")))
+                {
+                    File.WriteAllText(path, text);
+                    XmlFiles.Add(asset.Name, path);
+                }
+                if (asset.Name.Equals("ItemCatalogInt"))
+                {
+                    File.WriteAllText(Path.Join(rConfig.XmlSaveDirectory, "ItemCatalog.xml"), text);
+                    XmlFiles.Add("ItemCatalog", path);
+                }
             }
         }
 

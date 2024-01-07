@@ -13,6 +13,7 @@ using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Models.Character;
 using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
+using Server.Reawakened.XMLs.BundlesInternal;
 
 namespace Server.Reawakened.Players.Services;
 
@@ -20,7 +21,7 @@ public class EditCharacter(ServerConsole console, EventSink sink,
     ILogger<EditCharacter> logger, UserInfoHandler userInfoHandler,
     AccountHandler accountHandler, WorldGraph worldGraph,
     ServerRConfig config, NetStateHandler handler, WorldHandler worldHandler,
-    ItemCatalog itemCatalog, PlayerEventSink playerEventSink) : IService
+    ItemCatalogInt itemCatalog, PlayerEventSink playerEventSink) : IService
 {
     public void Initialize() => sink.WorldLoad += Load;
 

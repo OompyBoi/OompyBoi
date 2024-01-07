@@ -28,7 +28,7 @@ public class VendorCatalogInt : IBundledXml
     public void ReadDescription(string xml)
     {
         var miscDict = Services.GetRequiredService<MiscTextDictionary>();
-        var itemCat = Services.GetRequiredService<ItemCatalog>();
+        var itemCat = Services.GetRequiredService<ItemCatalogInt>();
 
         var xmlDocument = new XmlDocument();
         xmlDocument.LoadXml(xml);

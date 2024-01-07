@@ -29,7 +29,7 @@ public class NPCControllerComp : Component<NPCController>
     public MiscTextDictionary MiscText { get; set; }
     public ServerRConfig RConfig { get; set; }
     public Dialog Dialog { get; set; }
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
 
     public QuestCatalog QuestCatalog { get; set; }
     public ObjectiveCatalogInt ObjectiveCatalog { get; set; }

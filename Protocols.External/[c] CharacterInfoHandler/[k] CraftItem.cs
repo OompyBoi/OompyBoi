@@ -2,7 +2,6 @@
 using Server.Reawakened.Configs;
 using Server.Reawakened.Network.Protocols;
 using Server.Reawakened.Players.Extensions;
-using Server.Reawakened.XMLs.Bundles;
 using Server.Reawakened.XMLs.BundlesInternal;
 
 namespace Protocols.External._c__CharacterInfoHandler;
@@ -11,7 +10,7 @@ public class CraftItem : ExternalProtocol
 {
     public override string ProtocolName => "ck";
 
-    public ItemCatalog ItemCatalog { get; set; }
+    public ItemCatalogInt ItemCatalog { get; set; }
     public RecipeCatalogInt RecipeCatalog { get; set; }
     public ServerRConfig ServerRConfig { get;set; }
     public ILogger<CraftItem> Logger { get; set; }
