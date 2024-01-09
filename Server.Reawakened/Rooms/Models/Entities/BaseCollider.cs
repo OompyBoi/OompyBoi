@@ -41,7 +41,7 @@ public class BaseCollider
         IsAttackBox = false;
         ColliderBox = new RectModel(Position.x, Position.y+0.1f, collider.Width, collider.Height);
         Room = room;
-        Console.WriteLine("Collider initialized at (" + Position.x + ", " + Position.y + ") on plane " + Plane + " with dimensions (" + collider.Width + ", "+collider.Height + ")");
+        //Console.WriteLine("Collider initialized at (" + Position.x + ", " + Position.y + ") on plane " + Plane + " with dimensions (" + collider.Width + ", "+collider.Height + ")");
     }
 
     public void Update()
@@ -68,8 +68,8 @@ public class BaseCollider
 
     public bool CheckCollision(BaseCollider collided)
     {
-        if (Position.x < collided.ColliderBox.X + collided.ColliderBox.Width && collided.ColliderBox.X < Position.x + ColliderBox.Width &&
-            Position.y < collided.ColliderBox.Y + collided.ColliderBox.Height && collided.ColliderBox.Y < Position.y + ColliderBox.Height && 
+        if (Position.x < collided.Position.x + collided.ColliderBox.Width && collided.Position.x < Position.x + ColliderBox.Width &&
+            Position.y < collided.Position.y + collided.ColliderBox.Height && collided.Position.y < Position.y + ColliderBox.Height && 
             Plane == collided.Plane)
             return true;
         else

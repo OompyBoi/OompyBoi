@@ -6,6 +6,7 @@ using Server.Base.Timers.Services;
 using Server.Reawakened.Configs;
 using Server.Reawakened.Entities.Components;
 using Server.Reawakened.Entities.Entity;
+using Server.Reawakened.Entities.Entity.Enemies;
 using Server.Reawakened.Network.Extensions;
 using Server.Reawakened.Players;
 using Server.Reawakened.Rooms.Enums;
@@ -28,6 +29,7 @@ public class Room : Timer
     public readonly Dictionary<int, Player> Players;
     public readonly Dictionary<int, List<BaseComponent>> Entities;
     public readonly Dictionary<int, ProjectileEntity> Projectiles;
+    public readonly Dictionary<int, Enemy> Enemies;
     public readonly Dictionary<int, BaseCollider> Colliders;
     public readonly ILogger<Room> Logger;
 
@@ -61,6 +63,7 @@ public class Room : Timer
             return;
 
         Planes = LevelInfo.LoadPlanes(_config);
+        Enemies = new Dictionary<int, Enemy>();
         Entities = this.LoadEntities(services, out UnknownEntities);
         Projectiles = new Dictionary<int, ProjectileEntity>();
         Colliders = this.LoadColliders(LevelInfo, _config);
@@ -73,6 +76,25 @@ public class Room : Timer
 
         foreach (var component in Entities.Values.SelectMany(x => x))
             component.InitializeComponent();
+        //foreach (var component in Entities.Values.SelectMany(x => x))
+        //{
+        //    if (component.Name.Equals(config.EnemyComponentName))
+        //    {
+        //        // Move the name switcher out of ServerRConfig when the enemy xml is made.
+        //        switch (component.PrefabName)
+        //        {
+        //            case string name when name.Contains(config.EnemyNameSearch[11]):
+        //                Enemies.Add(component.Id, new EnemyOrchid(this, component.Id, component));
+        //                break;
+        //            default:
+        //                Enemies.Add(component.Id, new Enemy(this, component.Id, component));
+        //                break;
+        //        }
+        //    }
+        //}
+
+        foreach (var enemy in Enemies.ToArray())
+            enemy.Value.Initialize();
 
         var spawnPoints = this.GetComponentsOfType<SpawnPointComp>();
 
@@ -90,14 +112,18 @@ public class Room : Timer
     {
         var entitiesCopy = Entities.Values.SelectMany(s => s).ToList();
         var projectilesCopy = Projectiles.Values.ToList();
+        var enemiesCopy = Enemies.Values.ToList();
         foreach (var entityComponent in entitiesCopy)
         {
             if (!entityComponent.Disposed)
                 entityComponent.Update();
         }
 
-        foreach (var projectileComponent in projectilesCopy)
-            projectileComponent.Update();
+        foreach (var projectile in projectilesCopy)
+            projectile.Update();
+
+        foreach (var enemy in enemiesCopy)
+            enemy.Update();
 
         foreach (var player in Players.Values.Where(
                      player => GetTime.GetCurrentUnixMilliseconds() - player.CurrentPing > _config.KickAfterTime

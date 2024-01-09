@@ -21,9 +21,10 @@ public class ProjectileEntity : Component<ProjectileController>
 
     public ProjectileEntity(Player player, int id, float posX, float posY, float posZ, int direction, float lifeTime, ItemDescription item)
     {
+        // The magic numbers here are temporary. Will be updated with proper values when we do weapon infos
         var isLeft = direction > 0;
         posX += isLeft ? 0.25f : -0.25f;
-        posY += 1;
+        posY += 0.8333f;
         Speed = isLeft ? 10 : -10;
 
         Player = player;
@@ -33,7 +34,7 @@ public class ProjectileEntity : Component<ProjectileController>
         StartTime = player.Room.Time;
         LifeTime = StartTime + lifeTime;
         _plane = Position.Z > 10 ? "Plane1" : "Plane0";
-        //Magic Numbers 0.8f,, add to config
+        //Magic Numbers 0.5f, 0.5f, add to config as DefaultProjectileSize
         PrjCollider = new BaseCollider(id, Position, 0.5f, 0.5f, _plane, player.Room, true);
 
         var prj = new LaunchItem_SyncEvent(player.GameObjectId.ToString(), StartTime, posX, posY, posZ, Speed, 0, LifeTime, ProjectileID, item.PrefabName);

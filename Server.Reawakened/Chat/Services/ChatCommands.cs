@@ -16,6 +16,7 @@ using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
 using System.Text.RegularExpressions;
+using UnityEngine;
 using static LeaderBoardTopScoresJson;
 
 namespace Server.Reawakened.Chat.Services;
@@ -46,6 +47,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         AddCommand(new ChatCommand("save", "", SaveLevel));
         AddCommand(new ChatCommand("openVines", "", OpenVines));
         AddCommand(new ChatCommand("getPlayerId", "[id]", GetPlayerId));
+        AddCommand(new ChatCommand("initEnemies", "", InitEnemies));
         //AddCommand(new ChatCommand("forceSpawners", "", ForceSpawners));
         //AddCommand(new ChatCommand("getRoomEntityList", "", GetRoomEntityList));
 
@@ -157,10 +159,32 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         return true;
     }
 
+    private bool InitEnemies(Player player, string[] args)
+    {
+        foreach (var entityComponent in player.Room.Entities.Values.SelectMany(s => s))
+        {
+            if (entityComponent is AIEventControllerComp entity)
+            {
+                var init = new AIDo_SyncEvent(new SyncEvent(entity.Id.ToString(), SyncEvent.EventType.AIDo, player.Room.Time));
+                init.EventDataList.Clear();
+                init.EventDataList.Add(entity.Position.X);
+                init.EventDataList.Add(entity.Position.Y);
+                init.EventDataList.Add(1.0f);
+                init.EventDataList.Add(1);
+                init.EventDataList.Add("");
+                init.EventDataList.Add(entity.Position.X);
+                init.EventDataList.Add(entity.Position.Y);
+                init.EventDataList.Add(1);
+                init.EventDataList.Add(0);
+                player.Room.SendSyncEvent(init);
+            }
+        }
+        return true;
+    }
     private bool Teleport(Player player, string[] args)
     {
         if (!int.TryParse(args[1], out var xPos)
-            || !int.TryParse(args[2], out var yPos)
+        || !int.TryParse(args[2], out var yPos)
             || !int.TryParse(args[3], out var zPos))
         {
             Log("Please enter a valid coordinate value.", player);

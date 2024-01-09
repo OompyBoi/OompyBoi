@@ -7,7 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Remove="Entities\Components\AIEventControllerComp.cs" />
       <Compile Remove="Entities\Components\BaseSpawnerControllerComp.cs" />
     </ItemGroup>
 

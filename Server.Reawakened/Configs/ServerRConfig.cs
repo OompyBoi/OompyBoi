@@ -56,7 +56,8 @@ public class ServerRConfig : IRConfig
     public bool Is2014Client { get; set; }
 
     public string[] IgnoredDoors { get; set; }
-
+    public string[] EnemyNameSearch { get; set; }
+    public string EnemyComponentName { get; set; }
     public ServerRConfig()
     {
         LevelSaveDirectory = InternalDirectory.GetDirectory("XMLs/Levels");
@@ -156,6 +157,26 @@ public class ServerRConfig : IRConfig
 
         IgnoredDoors = [
             "PF_GLB_DoorArena01"
+        ];
+
+        EnemyComponentName = "EnemyController";
+
+        EnemyNameSearch = [
+            "PF_Critter_Bird",
+            "PF_Critter_Fish",
+            "PF_Critter_Dragon",
+            "PF_Critter_Drake",
+            "PF_Critter_Spider",
+            "PF_Spite_Bathog",
+            "PF_Spite_Bomber",
+            "PF_Spite_Crawler",
+            "PF_Spite_Dragon",
+            "PF_Spite_Grenadier",
+            "PF_Spite_Hamster",
+            "PF_Spite_Orchid",
+            "PF_Spite_Pincer",
+            "PF_Spite_Squirrel",
+            "PF_Spite_Stomper"
         ];
     }
 }

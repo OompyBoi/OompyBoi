@@ -18,7 +18,6 @@ public class InterObjStatusComp : Component<InterObjStatus>
     {
         //Fix spawn position for duplicate position args when spawners are added
         base.InitializeComponent();
-        Room.Colliders.Add(Id, new BaseCollider(Id, Position, Rectangle.Width, Rectangle.Height, ParentPlane, Room));
         Disposed = false;
     }
     public void SendDamageEvent(Player player)
@@ -27,7 +26,7 @@ public class InterObjStatusComp : Component<InterObjStatus>
         Logger.LogInformation("Enemy name: {args1} Enemy Id: {args2}", PrefabName, Id);
 
         // Link to damage + health of object later
-        var damageEvent = new AiHealth_SyncEvent(Id.ToString(), player.Room.Time, ComponentData.Health, 5, 0, 0, player.CharacterName, false, true);
+        var damageEvent = new AiHealth_SyncEvent(Id.ToString(), Room.Time, 0, 5, 0, 0, player.CharacterName, false, true);
         player.Room.SendSyncEvent(damageEvent);
         player.Room.Dispose(Id);
 
