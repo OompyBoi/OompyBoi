@@ -9,6 +9,7 @@ using Server.Reawakened.Entities.Components;
 using Server.Reawakened.Network.Helpers;
 using Server.Reawakened.Players;
 using Server.Reawakened.Rooms.Models.Entities;
+using Server.Reawakened.Rooms.Models.Entities.ColliderType;
 using Server.Reawakened.Rooms.Models.Planes;
 using Server.Reawakened.XMLs.BundlesInternal;
 using System.Reflection;
@@ -114,7 +115,6 @@ public static class LoadRoomData
 
                         foreach (XmlNode collider in tcPlane.ChildNodes)
                         {
-                            Console.WriteLine("this shit running");
                             var posX = 0f;
                             var posY = 0f;
                             var width = 1f;
@@ -126,7 +126,6 @@ public static class LoadRoomData
                                 {
                                     case "x":
                                         posX = float.Parse(colliderAttributes.Value);
-                                        Console.WriteLine("this shit also running");
                                         continue;
                                     case "y":
                                         posY = float.Parse(colliderAttributes.Value);
@@ -139,7 +138,6 @@ public static class LoadRoomData
                                         continue;
                                 }
                             }
-                            Console.WriteLine("this shit running too!");
                             colliderList.Add(new Collider(plane, posX, posY, width, height));
                         }
                     }
@@ -148,8 +146,7 @@ public static class LoadRoomData
                 foreach (var collider in colliderList)
                 {
                     i--;
-                    Console.WriteLine("Foreach loop ran");
-                    baseColliderList.Add(i, new BaseCollider(collider, room));
+                    baseColliderList.Add(i, new TCCollider(collider, room));
                 }
             }
         return baseColliderList;

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server.Reawakened.Entities.AIBehavior;
+namespace Server.Reawakened.Entities.AIAction;
 internal class AIAction_GoTo
 {
     private float _fromPosX;
@@ -25,32 +25,23 @@ internal class AIAction_GoTo
         _fromPosX = fromPosX;
         _fromPosY = fromPosY;
         if (Math.Abs(_toPosX - _fromPosX) > 0f)
-        {
             aiData.SyncInit_Dir = Math.Sign(_toPosX - fromPosX);
-        }
     }
 
     public void Update(ref AIProcessData aiData, float clockTime)
     {
-        float num = 1f;
+        var num = 1f;
         if (_finalTime != _initialTime)
-        {
             num = (clockTime - _initialTime) / (_finalTime - _initialTime);
-        }
         if (num > 1f)
-        {
             num = 1f;
-        }
         else if (num < 0f)
-        {
             num = 0f;
-        }
         if (_sinusMove)
-        {
             num = 0.5f * ((float)Math.Sin(num * 3.1416f - 1.5708f) + 1f);
-        }
 
-        aiData.SyncInit_PosX = (1f - num) * _fromPosX + num * _toPosX;
-        aiData.SyncInit_PosY = (1f - num) * _fromPosY + num * _toPosY;
+        aiData.Sync_PosX = (1f - num) * _fromPosX + num * _toPosX;
+        aiData.Sync_PosY = (1f - num) * _fromPosY + num * _toPosY;
+        aiData.Intern_BehaviorRequestTime = num;
     }
 }

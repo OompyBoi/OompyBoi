@@ -16,21 +16,6 @@ public class InterObjStatusComp : Component<InterObjStatus>
     public ILogger<InterObjStatusComp> Logger { get; set; }
     public override void InitializeComponent()
     {
-        //Fix spawn position for duplicate position args when spawners are added
         base.InitializeComponent();
-        Disposed = false;
-    }
-    public void SendDamageEvent(Player player)
-    {
-
-        Logger.LogInformation("Enemy name: {args1} Enemy Id: {args2}", PrefabName, Id);
-
-        // Link to damage + health of object later
-        var damageEvent = new AiHealth_SyncEvent(Id.ToString(), Room.Time, 0, 5, 0, 0, player.CharacterName, false, true);
-        player.Room.SendSyncEvent(damageEvent);
-        player.Room.Dispose(Id);
-
-        //player.GrantLoot(Id, LootCatalog, ItemCatalog, Logger);
-        //player.SendUpdatedInventory(false);
     }
 }

@@ -16,6 +16,7 @@ public class EnemyOrchid : Enemy
 
     public override void Update()
     {
+        base.Update();
         foreach (var player in Room.Players.ToList())
         {
             var pos = player.Value.TempData.Position;
@@ -28,16 +29,15 @@ public class EnemyOrchid : Enemy
 
     public override string WriteBehaviorList()
     {
-        string output = string.Empty;
+        string output = "Idle||";
         List<string> behaviorList = [];
 
         PatrolSpeed = 0;
         EndPathWaitTime = 0;
         //temp values for now. make this based on DetectionRange soon
         DetectionRange = new Rect(Position.x - 6, Position.y, 12, 6);
-        behaviorList.Add("Idle||");
         behaviorList.Add("Patrol|" + PatrolSpeed + ";" + 0 + ";" + EndPathWaitTime + ";" + Generic.Patrol_DistanceX + ";" + Generic.Patrol_DistanceY + ";" + Generic.Patrol_ForceDirectionX + ";" + Generic.Patrol_InitialProgressRatio + "|");
-        behaviorList.Add("Shooting|" + 3 + ";" + 90 + ";" + 0 + ";" + 1 + ";" + 1 + ";" + 2 + ";" + 1 + ";" + 1 + ";" + 4 + ";" + 0 + ";" + 0 + "|" + "COL_PRJ_PoisonProjectile_Lv3");
+        behaviorList.Add("Shooting|" + 3 + ";" + 90 + ";" + 0 + ";" + 1 + ";" + 1 + ";" + 2 + ";" + 1 + ";" + 1 + ";" + 4 + ";" + 0 + ";" + 0 + "|" + "PROJ-COL_PRJ_PoisonProjectile_Lv3");
         foreach (var bah in behaviorList)
         {
             if (behaviorList.Count > 0)

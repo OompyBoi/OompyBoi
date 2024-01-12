@@ -1,4 +1,5 @@
-﻿using Server.Reawakened.Entities.Stats;
+﻿using Server.Reawakened.Entities.AIAction;
+using Server.Reawakened.Entities.Stats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,6 +41,7 @@ internal class AIBehavior_Patrol : AIBaseBehavior
 
     public override bool Update(AIProcessData aiData, float roomTime)
     {
+        roomTime -= Patrol_EndPathWaitTime;
         _currentRatio = GetBehaviorRatio(aiData, roomTime);
         aiData.SyncInit_ProgressRatio = _currentRatio;
         if (_currentRatio < _firstStepRatio)
@@ -59,8 +61,8 @@ internal class AIBehavior_Patrol : AIBaseBehavior
             {
                 _currentStep = 2;
             }
-            aiData.SyncInit_PosX = _destinationPosition.x;
-            aiData.SyncInit_PosY = _destinationPosition.y;
+            aiData.Sync_PosX = _destinationPosition.x;
+            aiData.Sync_PosY = _destinationPosition.y;
         }
         else if (_currentRatio < _thirdStepRatio)
         {
@@ -79,8 +81,8 @@ internal class AIBehavior_Patrol : AIBaseBehavior
             {
                 _currentStep = 4;
             }
-            aiData.SyncInit_PosX = _spawnPosition.x;
-            aiData.SyncInit_PosY = _spawnPosition.y;
+            aiData.Sync_PosX = _spawnPosition.x;
+            aiData.Sync_PosY = _spawnPosition.y;
         }
         return true;
     }

@@ -76,25 +76,28 @@ public class Room : Timer
 
         foreach (var component in Entities.Values.SelectMany(x => x))
             component.InitializeComponent();
-        //foreach (var component in Entities.Values.SelectMany(x => x))
-        //{
-        //    if (component.Name.Equals(config.EnemyComponentName))
-        //    {
-        //        // Move the name switcher out of ServerRConfig when the enemy xml is made.
-        //        switch (component.PrefabName)
-        //        {
-        //            case string name when name.Contains(config.EnemyNameSearch[11]):
-        //                Enemies.Add(component.Id, new EnemyOrchid(this, component.Id, component));
-        //                break;
-        //            default:
-        //                Enemies.Add(component.Id, new Enemy(this, component.Id, component));
-        //                break;
-        //        }
-        //    }
-        //}
+        foreach (var component in Entities.Values.SelectMany(x => x))
+        {
+            if (component.Name.Equals(config.EnemyComponentName))
+            {
+                // Move the name switcher out of ServerRConfig when the enemy xml is made.
+                switch (component.PrefabName)
+                {
+                    case string orchid when orchid.Contains(config.EnemyNameSearch[11]):
+                        Enemies.Add(component.Id, new EnemyOrchid(this, component.Id, component));
+                        break;
+                    case string pincer when pincer.Contains(config.EnemyNameSearch[12]):
+                        Enemies.Add(component.Id, new EnemyPincer(this, component.Id, component));
+                        break;
+                    default:
+                        Enemies.Add(component.Id, new EnemyGeneric(this, component.Id, component));
+                        break;
+                }
+            }
+        }
 
-        foreach (var enemy in Enemies.ToArray())
-            enemy.Value.Initialize();
+        //foreach (var enemy in Enemies.ToArray())
+        //    enemy.Value.Initialize();
 
         var spawnPoints = this.GetComponentsOfType<SpawnPointComp>();
 
@@ -115,7 +118,6 @@ public class Room : Timer
         var enemiesCopy = Enemies.Values.ToList();
         foreach (var entityComponent in entitiesCopy)
         {
-            if (!entityComponent.Disposed)
                 entityComponent.Update();
         }
 
@@ -283,18 +285,6 @@ public class Room : Timer
         foreach (var player in Players.Values)
             player.DumpToLobby();
     }
-
-    public void Dispose(int id)
-    {
-        var roomEntities = Entities.Values.SelectMany(s => s).ToList();
-        foreach (var component in roomEntities)
-            if (component.Id == id)
-            {
-                component.Disposed = true;
-                Logger.LogInformation("Disposed component {component} from GameObject {prefabname} with Id {id}", component, component.PrefabName, component.Id);
-            }
-    }
-
         public string GetRoomName() =>
         $"{LevelInfo.LevelId}_{_roomId}";
 }

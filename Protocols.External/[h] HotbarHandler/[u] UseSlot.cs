@@ -87,7 +87,7 @@ public class UseSlot : ExternalProtocol
         while (Player.Room.GameObjectIds.Contains(prjId))
             prjId = Math.Abs(rand.Next());
 
-        var prj = new ProjectileEntity(Player, prjId, position.X, position.Y, position.Z, direction, 3, usedItem);
+        var prj = new ProjectileEntity(Player, prjId, position.X, position.Y, position.Z, direction, 3, usedItem, 5, usedItem.Elemental);
         Player.Room.Projectiles.Add(prjId, prj);
     }
 
@@ -131,10 +131,7 @@ public class UseSlot : ExternalProtocol
                         triggerCoopEntity.TriggerInteraction(ActivationType.NormalDamage, Player);
 
                     else if (component is BreakableEventControllerComp breakableObjEntity)
-                        breakableObjEntity.Destroy(Player);
-
-                    else if (component is InterObjStatusComp enemyEntity)
-                        enemyEntity.SendDamageEvent(Player);
+                        breakableObjEntity.Damage(5, Player);
         }
     }
 

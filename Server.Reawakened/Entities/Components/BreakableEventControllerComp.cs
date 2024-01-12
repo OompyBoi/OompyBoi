@@ -2,8 +2,10 @@
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Players.Helpers;
+using Server.Reawakened.Rooms;
 using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Models.Entities;
+using Server.Reawakened.Rooms.Models.Entities.ColliderType;
 using Server.Reawakened.XMLs.Bundles;
 using Server.Reawakened.XMLs.BundlesInternal;
 using System.Drawing;
@@ -11,7 +13,7 @@ using UnityEngine;
 
 namespace Server.Reawakened.Entities.Components;
 
-public class BreakableEventControllerComp : Component<BreakableEventController>
+public class BreakableEventControllerComp : Component<BreakableEventController>, IDestructible
 {
     public ItemCatalog ItemCatalog { get; set; }
     public LootCatalogInt LootCatalog { get; set; }
@@ -20,22 +22,27 @@ public class BreakableEventControllerComp : Component<BreakableEventController>
     public override void InitializeComponent()
     {
         base.InitializeComponent();
-        Room.Colliders.Add(Id, new BaseCollider(Id, Position, Rectangle.Width, Rectangle.Height, ParentPlane, Room));
+        Room.Colliders.Add(Id, new BreakableCollider(Id, Position, Rectangle.Width, Rectangle.Height, ParentPlane, Room));
     }
     public override void RunSyncedEvent(SyncEvent syncEvent, Player player)
     {
     }
 
-    public void Destroy(Player player)
+    public void Damage(int damage, Player origin)
     {
         Logger.LogInformation("Object name: {args1} Object Id: {args2}", PrefabName, Id);
+        var breakEvent = new AiHealth_SyncEvent(Id.ToString(), Room.Time, 0, 100, 0, 0, origin.CharacterName, false, true);
+        origin.Room.SendSyncEvent(breakEvent);
+        Destroy(Room, Id);
 
-        // Link to damage + health of object later
-        var breakEvent = new AiHealth_SyncEvent(Id.ToString(), player.Room.Time, 0, 100, 0, 0, player.CharacterName, false, true);
-        player.Room.SendSyncEvent(breakEvent);
+        origin.GrantLoot(Id, LootCatalog, ItemCatalog, Logger);
+        origin.SendUpdatedInventory(false);
+    }
 
-        player.GrantLoot(Id, LootCatalog, ItemCatalog, Logger);
-        player.SendUpdatedInventory(false);
-        player.Room.Dispose(Id);
+    public void Destroy(Room room, int id)
+    {
+        room.Entities.Remove(id);
+        room.Enemies.Remove(id);
+        room.Colliders.Remove(id);
     }
 }

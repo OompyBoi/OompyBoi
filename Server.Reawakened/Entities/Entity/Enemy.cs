@@ -1,4 +1,5 @@
 ﻿using Server.Base.Core.Extensions;
+using Server.Reawakened.Configs;
 using Server.Reawakened.Entities.AIBehavior;
 using Server.Reawakened.Entities.Components;
 using Server.Reawakened.Entities.Stats;
@@ -6,27 +7,32 @@ using Server.Reawakened.Players;
 using Server.Reawakened.Rooms;
 using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Models.Entities;
+using Server.Reawakened.Rooms.Models.Entities.ColliderType;
 using Server.Reawakened.Rooms.Models.Planes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Server.Reawakened.Entities.Entity;
-public class Enemy
+public abstract class Enemy : IDestructible
 {
     public bool Init;
     public Room Room;
     public int Id;
     public Vector3 SpawnPosition;
     public Vector3 Position;
-    public int Health;
     public Rect DetectionRange;
     public BaseCollider Hitbox;
     public string ParentPlane;
+    public float NegativeHeight;
+    public float BehaviorTime;
+    public int Health;
 
     public AI_Stats_Global_Bank Global;
     public AI_Stats_Generic_Bank Generic;
@@ -38,10 +44,21 @@ public class Enemy
     public AIBaseBehavior Behavior;
     public float PatrolSpeed;
     public float EndPathWaitTime;
-
+    public int[] HitByAttackList;
 
     public Enemy(Room room, int entityId, BaseComponent baseEntity)
     {
+        Entity = baseEntity;
+        Room = room;
+        Id = entityId;
+        //temp
+        Health = 100;
+        ParentPlane = Entity.ParentPlane;
+        Position = new Vector3(Entity.Position.X, Entity.Position.Y, Entity.Position.Z);
+        if (ParentPlane == "Plane1")
+            Position.z = 20;
+        SpawnPosition = Position;
+
         var entityList = room.Entities.Values.SelectMany(s => s);
         foreach (var entity in entityList)
         {
@@ -51,20 +68,7 @@ public class Enemy
                 Generic = generic;
             else if (entity.Id == Id && entity is InterObjStatusComp status)
                 Status = status;
-            else if (entity.Id == Id && entity is EnemyControllerComp enemy)
-                Entity = enemy;
         }
-        Console.WriteLine(Entity.PrefabName);
-        Console.WriteLine(Generic.Patrol_DistanceX);
-
-        Entity = baseEntity;
-        Room = room;
-        Id = entityId;
-        Position = new Vector3(Entity.Position.X, Entity.Position.Y, Entity.Position.Z);
-        SpawnPosition = Position;
-        ParentPlane = Entity.ParentPlane;
-        Console.WriteLine(Entity.Position);
-
 
         EnemyGlobalProps = new GlobalProperties(
             Global.Global_DetectionLimitedByPatrolLine,
@@ -88,13 +92,18 @@ public class Enemy
         AiData.SetStats(EnemyGlobalProps);
         AiData.SyncInit_PosX = Position.x;
         AiData.SyncInit_PosY = Position.y;
+        AiData.Sync_PosX = Position.x;
+        AiData.Sync_PosY = Position.y;
         AiData.Intern_SpawnPosX = Position.x;
         AiData.Intern_SpawnPosY = Position.y;
         AiData.Intern_SpawnPosZ = Position.z;
         AiData.SyncInit_Dir = Generic.Patrol_ForceDirectionX;
         AiData.SyncInit_ProgressRatio = Generic.Patrol_InitialProgressRatio;
 
-        Hitbox = new BaseCollider(Id, Entity.Position, Entity.Rectangle.Width, Entity.Rectangle.Height, Entity.ParentPlane, Room);
+        NegativeHeight = 0;
+        if (Entity.Scale.Y < 0)
+            NegativeHeight = Entity.Rectangle.Height;
+        Hitbox = new EnemyCollider(Id, new Vector3Model { X = Position.x, Y = Position.y - NegativeHeight, Z = Position.z }, Entity.Rectangle.Width, Entity.Rectangle.Height, Entity.ParentPlane, Room);
         Room.Colliders.Add(Id, Hitbox);
     }
     public virtual void Initialize()
@@ -107,15 +116,19 @@ public class Enemy
         {
             // Address magic numbers when we get around to adding enemy effect mods
             Room.SendSyncEvent(AIInit(1, 1, 1));
+
             // Address first magic number when we get to adding enemy effect mods
-            Room.SendSyncEvent(AIDo(1.0f, 1, "", Position.x, Position.y, Generic.Patrol_ForceDirectionX, 0));
+            Room.SendSyncEvent(AIDo(1.0f, 1, "", Position.x, Position.y, AiData.SyncInit_Dir, 0));
             Init = true;
         }
 
         Behavior.Update(AiData, Room.Time);
 
-        Position = new Vector3(AiData.SyncInit_PosX, AiData.SyncInit_PosY, Position.z);
-        Hitbox.Position = Position;
+        Position = new Vector3(AiData.Sync_PosX, AiData.Sync_PosY, Position.z);
+
+        //Hitbox stuff
+        Hitbox.Position = new Vector3(AiData.Sync_PosX, AiData.Sync_PosY - NegativeHeight, Position.z);
+        
     }
 
     public virtual string WriteBehaviorList()
@@ -166,16 +179,10 @@ public class Enemy
             EndPathWaitTime = 2;
             behaviorList.Add("Patrol|" + PatrolSpeed + ";" + 0 + ";" + EndPathWaitTime + ";" + Generic.Patrol_DistanceX + ";" + Generic.Patrol_DistanceY + ";" + Generic.Patrol_ForceDirectionX + ";" + Generic.Patrol_InitialProgressRatio + "|");
         }
-        else if (Entity.PrefabName.Contains("PF_Spite_Pincer"))
-        {
-            PatrolSpeed = 2.4f;
-            EndPathWaitTime = 0;
-            behaviorList.Add("Patrol|" + PatrolSpeed + ";" + 0 + ";" + EndPathWaitTime + ";" + Generic.Patrol_DistanceX + ";" + Generic.Patrol_DistanceY + ";" + Generic.Patrol_ForceDirectionX + ";" + Generic.Patrol_InitialProgressRatio + "|");
-        }
         else if (Entity.PrefabName.Contains("PF_Spite_Stomper"))
         {
-            PatrolSpeed = 1.8f;
-            EndPathWaitTime = 3;
+            PatrolSpeed = 1.5f;
+            EndPathWaitTime = 4;
             behaviorList.Add("Patrol|" + PatrolSpeed + ";" + 0 + ";" + EndPathWaitTime + ";" + Generic.Patrol_DistanceX + ";" + Generic.Patrol_DistanceY + ";" + Generic.Patrol_ForceDirectionX + ";" + Generic.Patrol_InitialProgressRatio + "|");
         }
 
@@ -193,14 +200,31 @@ public class Enemy
         return output;
     }
 
-    public bool PlayerInRange(Vector3Model pos)
+    public virtual void Damage(int damage, Player origin)
+    {
+        Health -= damage;
+        var damageEvent = new AiHealth_SyncEvent(Id.ToString(), Room.Time, Health, damage, 0, 0, origin.CharacterName, false, true);
+        Room.SendSyncEvent(damageEvent);
+        if (Health <= 0)
+        {
+            var kill = new SyncEvent(Id.ToString(), SyncEvent.EventType.AIDie, Room.Time);
+            kill.EventDataList.Add("");
+            kill.EventDataList.Add(10);
+            kill.EventDataList.Add(1);
+            kill.EventDataList.Add(origin.GameObjectId.ToString());
+            kill.EventDataList.Add(0);
+            Destroy(Room, Id);
+        }
+    }
+
+    public virtual bool PlayerInRange(Vector3Model pos)
     {
         if (Position.x - DetectionRange.width / 2 < pos.X && pos.X < Position.x + DetectionRange.width / 2 &&
-            Position.y < pos.Y && pos.Y < Position.y + DetectionRange.height)
+            Position.y < pos.Y && pos.Y < Position.y + DetectionRange.height && Position.z == pos.Z)
             return true;
         return false;
     }
-    public AIDo_SyncEvent AIDo(float speedFactor, int behaviorId, string args, float targetPosX, float targetPosY, int direction, int awareBool)
+    public virtual AIDo_SyncEvent AIDo(float speedFactor, int behaviorId, string args, float targetPosX, float targetPosY, int direction, int awareBool)
     {
         var aiDo = new AIDo_SyncEvent(new SyncEvent(Id.ToString(), SyncEvent.EventType.AIDo, Room.Time));
         aiDo.EventDataList.Clear();
@@ -217,17 +241,35 @@ public class Enemy
         return aiDo;
     }
 
-    public AIInit_SyncEvent AIInit(float healthMod, float sclMod, float resMod)
+    public virtual AIInit_SyncEvent AIInit(float healthMod, float sclMod, float resMod)
     {
-        int z = 0;
-        if (ParentPlane == "Plane1")
-            z = 20;
-
-        var aiInit = new AIInit_SyncEvent(Id.ToString(), Room.Time, Position.x, Position.y, z, Position.x, Position.y, Generic.Patrol_InitialProgressRatio,
+        var aiInit = new AIInit_SyncEvent(Id.ToString(), Room.Time, Position.x, Position.y, Position.z, Position.x, Position.y, Generic.Patrol_InitialProgressRatio,
             Status.MaxHealth, Status.MaxHealth, healthMod, sclMod, resMod, Status.Stars, Status.GenericLevel, EnemyGlobalProps.ToString(), WriteBehaviorList());
         aiInit.EventDataList[2] = Position.x;
         aiInit.EventDataList[3] = Position.y;
         aiInit.EventDataList[4] = Position.z;
         return aiInit;
+    }
+
+    public virtual AILaunchItem_SyncEvent AILaunchItem(float posX, float posY, float posZ, float speedX, float speedY, float lifeTime, int prjId, int isGrenade)
+    {
+        var launch = new AILaunchItem_SyncEvent(new SyncEvent(Id.ToString(), SyncEvent.EventType.AILaunchItem, Room.Time));
+        launch.EventDataList.Clear();
+        launch.EventDataList.Add(Position.x);
+        launch.EventDataList.Add(Position.y);
+        launch.EventDataList.Add(Position.z);
+        launch.EventDataList.Add(speedX);
+        launch.EventDataList.Add(speedY);
+        launch.EventDataList.Add(lifeTime);
+        launch.EventDataList.Add(prjId);
+        launch.EventDataList.Add(isGrenade);
+        return launch;
+    }
+
+    public void Destroy(Room room, int id)
+    {
+        room.Entities.Remove(id);
+        room.Enemies.Remove(id);
+        room.Colliders.Remove(id);
     }
 }

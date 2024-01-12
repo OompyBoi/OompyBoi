@@ -14,4 +14,7 @@ public class AI_Stats_Generic_Bank : Component<AI_Stats_Generic>
     public int Patrol_ForceDirectionX => ComponentData.Patrol_ForceDirectionX;
     public bool Aggro_UseAttackBeyondPatrolLine => ComponentData.Aggro_UseAttackBeyondPatrolLine;
 
+    public override void InitializeComponent()
+    {
+    }
 }

@@ -5,6 +5,7 @@ using Server.Reawakened.Entities.Enums;
 using Server.Reawakened.Players;
 using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Models.Entities;
+using Server.Reawakened.Rooms.Models.Entities.ColliderType;
 using Server.Reawakened.Rooms.Models.Planes;
 using UnityEngine;
 
@@ -19,7 +20,7 @@ public class ProjectileEntity : Component<ProjectileController>
     public BaseCollider PrjCollider;
     public ILogger<ProjectileEntity> Logger { get; set; }
 
-    public ProjectileEntity(Player player, int id, float posX, float posY, float posZ, int direction, float lifeTime, ItemDescription item)
+    public ProjectileEntity(Player player, int id, float posX, float posY, float posZ, int direction, float lifeTime, ItemDescription item, int damage, Elemental type)
     {
         // The magic numbers here are temporary. Will be updated with proper values when we do weapon infos
         var isLeft = direction > 0;
@@ -35,7 +36,7 @@ public class ProjectileEntity : Component<ProjectileController>
         LifeTime = StartTime + lifeTime;
         _plane = Position.Z > 10 ? "Plane1" : "Plane0";
         //Magic Numbers 0.5f, 0.5f, add to config as DefaultProjectileSize
-        PrjCollider = new BaseCollider(id, Position, 0.5f, 0.5f, _plane, player.Room, true);
+        PrjCollider = new AttackCollider(id, Position, 0.5f, 0.5f, _plane, player, damage, type, LifeTime);
 
         var prj = new LaunchItem_SyncEvent(player.GameObjectId.ToString(), StartTime, posX, posY, posZ, Speed, 0, LifeTime, ProjectileID, item.PrefabName);
         player.Room.SendSyncEvent(prj);
@@ -49,7 +50,7 @@ public class ProjectileEntity : Component<ProjectileController>
         Position.X += Speed * 0.015625f;
         PrjCollider.Position.x = Position.X;
  
-        var Collisions = PrjCollider.IsColliding();
+        var Collisions = PrjCollider.IsColliding(true);
         if (Collisions.Length > 0)
             foreach (var collision in Collisions)
         {
