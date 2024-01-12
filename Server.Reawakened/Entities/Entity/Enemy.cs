@@ -52,7 +52,7 @@ public abstract class Enemy : IDestructible
         Room = room;
         Id = entityId;
         //temp
-        Health = 100;
+        Health = 20;
         ParentPlane = Entity.ParentPlane;
         Position = new Vector3(Entity.Position.X, Entity.Position.Y, Entity.Position.Z);
         if (ParentPlane == "Plane1")

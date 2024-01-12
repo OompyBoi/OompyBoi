@@ -142,9 +142,9 @@ public class UseSlot : ExternalProtocol
                     Logger.LogInformation("Found close hazard {PrefabName} with Id {ObjectId}", prefabName, objectId);
 
                     if (component is BreakableEventControllerComp breakableObjEntity)
-                        breakableObjEntity.Destroy(Player);
-                    else if (component is InterObjStatusComp enemyEntity)
-                        enemyEntity.SendDamageEvent(Player);
+                        breakableObjEntity.Damage(5, Player);
+                    //else if (component is InterObjStatusComp enemyEntity)
+                    //   enemyEntity.SendDamageEvent(Player);
                 }
             }
         }
@@ -184,12 +184,8 @@ public class UseSlot : ExternalProtocol
         while (Player.Room.GameObjectIds.Contains(prjId))
             prjId = Math.Abs(rand.Next());
 
-<<<<<<< HEAD
         var prj = new ProjectileEntity(Player, prjId, position.X, position.Y, position.Z, direction, 3, usedItem, 5, usedItem.Elemental);
-=======
-        var prj = new ProjectileEntity(Player, prjId, position.X, position.Y, position.Z, direction, 3, usedItem);
 
->>>>>>> 10d1da0c52ab89c24d6e4171e90a524d071c3a47
         Player.Room.Projectiles.Add(prjId, prj);
     }
 
@@ -238,13 +234,9 @@ public class UseSlot : ExternalProtocol
                     if (component is TriggerCoopControllerComp triggerCoopEntity)
                         triggerCoopEntity.TriggerInteraction(ActivationType.NormalDamage, Player);
                     else if (component is BreakableEventControllerComp breakableObjEntity)
-<<<<<<< HEAD
                         breakableObjEntity.Damage(5, Player);
-=======
-                        breakableObjEntity.Destroy(Player);
-                    else if (component is InterObjStatusComp enemyEntity)
-                        enemyEntity.SendDamageEvent(Player);
->>>>>>> 10d1da0c52ab89c24d6e4171e90a524d071c3a47
+                    //else if (component is InterObjStatusComp enemyEntity)
+                    //    enemyEntity.SendDamageEvent(5, Player);
         }
     }
 

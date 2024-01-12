@@ -89,6 +89,11 @@ public class Room : Timer
                     case string pincer when pincer.Contains(config.EnemyNameSearch[12]):
                         Enemies.Add(component.Id, new EnemyPincer(this, component.Id, component));
                         break;
+                    // Exists because spiderlings break the system currently
+                    case string spiderling when spiderling.Contains("Spiderling"):
+                        break;
+                    case string spiderling when spiderling.Contains("TeaserSpider_Boss"):
+                        break;
                     default:
                         Enemies.Add(component.Id, new EnemyGeneric(this, component.Id, component));
                         break;

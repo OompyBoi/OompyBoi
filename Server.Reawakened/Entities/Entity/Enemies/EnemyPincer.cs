@@ -63,7 +63,7 @@ public class EnemyPincer : Enemy
             if (Room.Time >= AiData.Intern_BehaviorRequestTime)
             {
                 Room.SendSyncEvent(AIDo(1.0f, 1, "", Position.x, Position.y, AiData.SyncInit_Dir, 0));
-                Behavior = new AIBehavior_Patrol(Position, new Vector3(SpawnPosition.x + Generic.Patrol_DistanceX, SpawnPosition.y + Generic.Patrol_DistanceY, SpawnPosition.z),
+                Behavior = new AIBehavior_Patrol(SpawnPosition, new Vector3(SpawnPosition.x + Generic.Patrol_DistanceX, SpawnPosition.y + Generic.Patrol_DistanceY, SpawnPosition.z),
                    PatrolSpeed,
                    EndPathWaitTime);
             }

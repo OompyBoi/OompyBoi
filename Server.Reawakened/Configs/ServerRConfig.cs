@@ -16,6 +16,8 @@ public class ServerRConfig : IRConfig
     public int PlayerCap { get; }
     public int ReservedNameCount { get; }
     public int MaxCharacterCount { get; }
+    public int HealingStaff { get; }
+    public int HealAmount { get; }
 
     public int MaxLevel { get; }
 
@@ -58,6 +60,7 @@ public class ServerRConfig : IRConfig
     public string[] IgnoredDoors { get; set; }
     public string[] EnemyNameSearch { get; set; }
     public string EnemyComponentName { get; set; }
+    public int MaximumEntitiesToReturnLog { get; set; }
     public ServerRConfig()
     {
         LevelSaveDirectory = InternalDirectory.GetDirectory("XMLs/Levels");
@@ -154,6 +157,7 @@ public class ServerRConfig : IRConfig
         Is2014Client = false;
 
         MaxLevel = 65;
+        HealAmount = 100000;
 
         IgnoredDoors = [
             "PF_GLB_DoorArena01"
@@ -178,5 +182,9 @@ public class ServerRConfig : IRConfig
             "PF_Spite_Squirrel",
             "PF_Spite_Stomper"
         ];
+
+        MaximumEntitiesToReturnLog = 15;
+
+        HealingStaff = 396;
     }
 }
