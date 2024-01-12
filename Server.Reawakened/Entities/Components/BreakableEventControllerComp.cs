@@ -8,8 +8,6 @@ using Server.Reawakened.Rooms.Models.Entities;
 using Server.Reawakened.Rooms.Models.Entities.ColliderType;
 using Server.Reawakened.XMLs.Bundles;
 using Server.Reawakened.XMLs.BundlesInternal;
-using System.Drawing;
-using UnityEngine;
 
 namespace Server.Reawakened.Entities.Components;
 
@@ -24,6 +22,7 @@ public class BreakableEventControllerComp : Component<BreakableEventController>,
         base.InitializeComponent();
         Room.Colliders.Add(Id, new BreakableCollider(Id, Position, Rectangle.Width, Rectangle.Height, ParentPlane, Room));
     }
+
     public override void RunSyncedEvent(SyncEvent syncEvent, Player player)
     {
     }

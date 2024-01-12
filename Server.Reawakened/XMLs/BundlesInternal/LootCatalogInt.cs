@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Server.Reawakened.Players.Models.Character;
 using Server.Reawakened.XMLs.Abstractions;
 using Server.Reawakened.XMLs.Enums;
 using Server.Reawakened.XMLs.Extensions;
@@ -89,7 +88,7 @@ public class LootCatalogInt : IBundledXml
                                     }
 
                                 var itemList = reward.GetXmlItems();
-                                foreach(var item in itemList)
+                                foreach (var item in itemList)
                                 {
                                     weightRange += item.Weight;
                                 }
