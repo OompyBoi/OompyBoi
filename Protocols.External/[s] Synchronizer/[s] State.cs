@@ -76,10 +76,7 @@ public class State : ExternalProtocol
                     if (room.Entities.TryGetValue(collisionTarget, out var entityComponents))
                     {
                         foreach (var component in entityComponents)
-                            if (!component.Disposed)
-                            {
-                                component.NotifyCollision(notifyCollisionEvent, newPlayer);
-                            }
+                            component.NotifyCollision(notifyCollisionEvent, newPlayer);
                     }
                     else
                         Logger.LogWarning("Unhandled collision from {TargetId}, no entity for {EntityType}.",
@@ -159,10 +156,7 @@ public class State : ExternalProtocol
         else if (room.Entities.TryGetValue(entityId, out var entityComponents))
         {
             foreach (var component in entityComponents)
-                if (!component.Disposed)
-                {
-                    component.RunSyncedEvent(syncEvent, Player);
-                }
+                component.RunSyncedEvent(syncEvent, Player);
         }
         else
         {
@@ -191,7 +185,7 @@ public class State : ExternalProtocol
             uniqueType = "Player";
 
             uniqueIdentifier = newPlayer.Character != null ?
-                $"{newPlayer.CharacterName} ({newPlayer.Character.Data.CharacterId})" :
+                $"{newPlayer.CharacterName} ({newPlayer.Character.Data.LightCharacterId})" :
                 "Unknown";
         }
 

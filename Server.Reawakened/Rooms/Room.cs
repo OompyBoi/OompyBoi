@@ -6,12 +6,14 @@ using Server.Base.Timers.Services;
 using Server.Reawakened.Configs;
 using Server.Reawakened.Entities.Components;
 using Server.Reawakened.Entities.Entity;
+using Server.Reawakened.Entities.Entity.Enemies;
 using Server.Reawakened.Network.Extensions;
 using Server.Reawakened.Players;
 using Server.Reawakened.Rooms.Enums;
 using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Models.Entities;
 using Server.Reawakened.Rooms.Models.Planes;
+using Server.Reawakened.XMLs.BundlesInternal;
 using WorldGraphDefines;
 using Timer = Server.Base.Timers.Timer;
 
@@ -27,19 +29,19 @@ public class Room : Timer
     public readonly Dictionary<int, Player> Players;
     public readonly Dictionary<int, List<BaseComponent>> Entities;
     public readonly Dictionary<int, ProjectileEntity> Projectiles;
+    public readonly Dictionary<int, Enemy> Enemies;
+    public readonly Dictionary<int, BaseCollider> Colliders;
     public readonly ILogger<Room> Logger;
 
     public readonly Dictionary<string, PlaneModel> Planes;
     public readonly Dictionary<int, List<string>> UnknownEntities;
 
     public SpawnPointComp DefaultSpawn { get; set; }
-
     public SpawnPointComp CheckpointSpawn { get; set; }
     public int CheckpointId { get; set; }
     public LevelInfo LevelInfo => _level.LevelInfo;
     public long TimeOffset { get; set; }
     public float Time => (float)((GetTime.GetCurrentUnixMilliseconds() - TimeOffset) / 1000.0);
-    public int ProjectileCount;
 
     public Room(
         int roomId, Level level, ServerRConfig config, TimerThread timerThread,
@@ -61,10 +63,10 @@ public class Room : Timer
             return;
 
         Planes = LevelInfo.LoadPlanes(_config);
-        this.LoadColliders();
+        Enemies = new Dictionary<int, Enemy>();
         Entities = this.LoadEntities(services, out UnknownEntities);
         Projectiles = new Dictionary<int, ProjectileEntity>();
-
+        Colliders = this.LoadColliders(LevelInfo, _config);
         foreach (var gameObjectId in Planes.Values
                      .Select(x => x.GameObjects.Values)
                      .SelectMany(x => x)
@@ -74,6 +76,33 @@ public class Room : Timer
 
         foreach (var component in Entities.Values.SelectMany(x => x))
             component.InitializeComponent();
+        foreach (var component in Entities.Values.SelectMany(x => x))
+        {
+            if (component.Name.Equals(config.EnemyComponentName))
+            {
+                // Move the name switcher out of ServerRConfig when the enemy xml is made.
+                switch (component.PrefabName)
+                {
+                    case string orchid when orchid.Contains(config.EnemyNameSearch[11]):
+                        Enemies.Add(component.Id, new EnemyOrchid(this, component.Id, component));
+                        break;
+                    case string pincer when pincer.Contains(config.EnemyNameSearch[12]):
+                        Enemies.Add(component.Id, new EnemyPincer(this, component.Id, component));
+                        break;
+                    // Exists because spiderlings break the system currently
+                    case string spiderling when spiderling.Contains("Spiderling"):
+                        break;
+                    case string spiderling when spiderling.Contains("TeaserSpider_Boss"):
+                        break;
+                    default:
+                        Enemies.Add(component.Id, new EnemyGeneric(this, component.Id, component));
+                        break;
+                }
+            }
+        }
+
+        //foreach (var enemy in Enemies.ToArray())
+        //    enemy.Value.Initialize();
 
         var spawnPoints = this.GetComponentsOfType<SpawnPointComp>();
 
@@ -84,7 +113,6 @@ public class Room : Timer
                 LevelInfo.LevelId, LevelInfo.Name);
 
         TimeOffset = GetTime.GetCurrentUnixMilliseconds();
-        ProjectileCount = 0;
         Start();
     }
 
@@ -92,14 +120,17 @@ public class Room : Timer
     {
         var entitiesCopy = Entities.Values.SelectMany(s => s).ToList();
         var projectilesCopy = Projectiles.Values.ToList();
+        var enemiesCopy = Enemies.Values.ToList();
         foreach (var entityComponent in entitiesCopy)
         {
-            if (!entityComponent.Disposed)
                 entityComponent.Update();
         }
 
-        foreach (var projectileComponent in projectilesCopy)
-            projectileComponent.Update();
+        foreach (var projectile in projectilesCopy)
+            projectile.Update();
+
+        foreach (var enemy in enemiesCopy)
+            enemy.Update();
 
         foreach (var player in Players.Values.Where(
                      player => GetTime.GetCurrentUnixMilliseconds() - player.CurrentPing > _config.KickAfterTime
@@ -259,18 +290,6 @@ public class Room : Timer
         foreach (var player in Players.Values)
             player.DumpToLobby();
     }
-
-    public void Dispose(int id)
-    {
-        var roomEntities = Entities.Values.SelectMany(s => s).ToList();
-        foreach (var component in roomEntities)
-            if (component.Id == id)
-            {
-                component.Disposed = true;
-                Console.WriteLine("Disposed component " + component + " from GameObject " + component.PrefabName + " with Id " + component.Id);
-            }
-    }
-
         public string GetRoomName() =>
         $"{LevelInfo.LevelId}_{_roomId}";
 }

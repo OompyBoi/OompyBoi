@@ -1,22 +1,20 @@
 ﻿using A2m.Server;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Server.Base.Accounts.Models;
 using Server.Base.Core.Abstractions;
 using Server.Base.Core.Services;
 using Server.Base.Worlds.Services;
 using Server.Reawakened.Chat.Models;
 using Server.Reawakened.Configs;
 using Server.Reawakened.Entities.Components;
-using Server.Reawakened.Entities.Entity;
 using Server.Reawakened.Network.Extensions;
 using Server.Reawakened.Players;
 using Server.Reawakened.Players.Extensions;
 using Server.Reawakened.Rooms.Extensions;
+using Server.Reawakened.Rooms.Models.Planes;
 using Server.Reawakened.Rooms.Services;
 using Server.Reawakened.XMLs.Bundles;
 using System.Text.RegularExpressions;
-using static LeaderBoardTopScoresJson;
 
 namespace Server.Reawakened.Chat.Services;
 
@@ -25,6 +23,9 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
 {
     private readonly Dictionary<string, ChatCommand> commands = [];
 
+    [GeneratedRegex("[^A-Za-z0-9]+")]
+    private static partial Regex MyRegex();
+
     public void Initialize() => appLifetime.ApplicationStarted.Register(RunChatListener);
 
     public void RunChatListener()
@@ -32,7 +33,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         logger.LogDebug("Setting up chat commands");
 
         AddCommand(new ChatCommand("changeName", "[first] [middle] [last]", ChangeName));
-        AddCommand(new ChatCommand("unlockHotbar", "[petSlot 1 (true) / 0 (false)]", AddHotbar));
+        AddCommand(new ChatCommand("unlockHotBar", "[petSlot 1 (true) / 0 (false)]", AddHotBar));
         AddCommand(new ChatCommand("giveItem", "[itemId] [amount]", AddItem));
         AddCommand(new ChatCommand("badgePoints", "[badgePoints]", BadgePoints));
         AddCommand(new ChatCommand("tp", "[X] [Y] [backPlane]", Teleport));
@@ -42,12 +43,12 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         AddCommand(new ChatCommand("warp", "[levelId]", ChangeLevel));
         AddCommand(new ChatCommand("discoverTribes", "", DiscoverTribes));
         AddCommand(new ChatCommand("openDoors", "", OpenDoors));
+        AddCommand(new ChatCommand("getAllItems", "[categoryValue]", GetAllItems));
         AddCommand(new ChatCommand("godmode", "", GodMode));
         AddCommand(new ChatCommand("save", "", SaveLevel));
         AddCommand(new ChatCommand("openVines", "", OpenVines));
         AddCommand(new ChatCommand("getPlayerId", "[id]", GetPlayerId));
-        //AddCommand(new ChatCommand("forceSpawners", "", ForceSpawners));
-        //AddCommand(new ChatCommand("getRoomEntityList", "", GetRoomEntityList));
+        AddCommand(new ChatCommand("closestEntity", "", ClosestEntity));
 
         logger.LogInformation("See chat commands by running {ChatCharStart}help", config.ChatCommandStart);
     }
@@ -61,7 +62,8 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
             Log(
                 !value.CommandMethod(player, args)
                     ? $"Usage: {config.ChatCommandStart}{value.Name} {value.Arguments}"
-                    : "Successfully run command!", player);
+                    : "Successfully run command!", player
+            );
         }
         else
         {
@@ -91,6 +93,40 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
 
     public void AddCommand(ChatCommand command) => commands.Add(command.Name, command);
 
+    public bool GetAllItems(Player player, string[] args)
+    {
+        if (args.Length > 1)
+        {
+            if (!int.TryParse(args[1], out var categoryValue))
+                return false;
+
+            if (categoryValue is < 0 or > 12)
+            {
+                Log($"Please enter a category value between 0-12!", player);
+                return false;
+            }
+            var chosenCategory = itemCatalog.GetItemsDescription((ItemFilterCategory)categoryValue);
+
+            foreach (var item in chosenCategory)
+                player.Character.AddItem(item, 1);
+        }
+
+        else
+        {
+            var categoryList = new List<List<ItemDescription>>();
+            for (var i = 0; i < 12; i++)
+                categoryList.Add(itemCatalog.GetItemsDescription((ItemFilterCategory)i));
+
+            foreach (var category in categoryList)
+                foreach (var item in category)
+                    player.Character.AddItem(item, 1);
+        }
+
+        player.SendUpdatedInventory(false);
+
+        return true;
+    }
+
     private bool GodMode(Player player, string[] args)
     {
         var items = config.SingleItemKit
@@ -107,20 +143,27 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
 
         player.Character.AddKit(items, 1);
         player.SendUpdatedInventory(false);
-        player.AddBananas(100000);
-        player.AddNCash(100000);
-        player.AddPoints();
-        player.LevelUp(65, logger);
-        player.DiscoverAllTribes();
-        player.SendCashUpdate();
         player.AddSlots(true);
+
+        player.AddBananas(config.CashKitAmount);
+        player.AddNCash(config.CashKitAmount);
+        player.SendCashUpdate();
+
+        player.LevelUp(config.MaxLevel, logger);
+        player.AddPoints();
+        player.DiscoverAllTribes();
+
         player.Character.Data.CurrentLife = player.Character.Data.MaxLife;
+
         var health = new Health_SyncEvent(player.GameObjectId.ToString(), player.Room.Time, player.Character.Data.MaxLife, player.Character.Data.MaxLife, "now");
-        var t = new StatusEffect_SyncEvent(player.GameObjectId.ToString(), player.Room.Time, (int)ItemEffectType.Healing, 100000, 1, true, player.GameObjectId.ToString(), true);
         player.Room.SendSyncEvent(health);
-        player.Room.SendSyncEvent(t);
+
+        var heal = new StatusEffect_SyncEvent(player.GameObjectId.ToString(), player.Room.Time, (int)ItemEffectType.Healing, config.HealAmount, 1, true, player.GameObjectId.ToString(), true);
+        player.Room.SendSyncEvent(heal);
+
         return true;
     }
+
     private bool OpenDoors(Player player, string[] args)
     {
         foreach (var entityComponent in player.Room.Entities.Values.SelectMany(s => s))
@@ -137,57 +180,25 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         return true;
     }
 
-    private bool GetRoomEntityList(Player player, string[] args)
-    {
-        foreach (var entityComponent in player.Room.Entities.Values.SelectMany(s => s))
-            Console.WriteLine(entityComponent);
-        return true;
-    }
-
     private bool OpenVines(Player player, string[] args)
     {
         foreach (var entityComponent in player.Room.Entities.Values.SelectMany(s => s))
-        {
             if (entityComponent is MysticCharmTargetComp vineEntity)
-            {
                 vineEntity.Charm(player);
-            }
-        }
-
-        return true;
-    }
-    private bool ForceSpawners(Player player, string[] args)
-    {
-        foreach (var entityComponent in player.Room.Entities.Values.SelectMany(s => s))
-        {
-            //if (entityComponent is BaseSpawnerControllerComp spawner)
-            //{
-            //    spawner.Spawn();
-            //}
-        }
 
         return true;
     }
 
     private bool Teleport(Player player, string[] args)
     {
-        if (!int.TryParse(args[1], out var xPos)
-            || !int.TryParse(args[2], out var yPos)
-            || !int.TryParse(args[3], out var zPos))
+        if (args.Length < 3 || !int.TryParse(args[1], out var xPos) || !int.TryParse(args[2], out var yPos))
         {
-            Log("Please enter a valid coordinate value.", player);
+            Log("Please enter valid coordinates.", player);
             return false;
         }
 
-        var z = zPos;
-
-        if (zPos is < 0 or > 1)
-        {
-            Log("Invalid value for Z, defaulting to 0", player);
-            z = 0;
-        }
-
-        player.TeleportPlayer(xPos, yPos, z);
+        var zPos = args.Length > 3 && int.TryParse(args[3], out var z) ? z : 0;
+        player.TeleportPlayer(xPos, yPos, zPos);
 
         return true;
     }
@@ -203,7 +214,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         return true;
     }
 
-    private bool AddHotbar(Player player, string[] args)
+    private bool AddHotBar(Player player, string[] args)
     {
         var hasPet = false;
 
@@ -222,7 +233,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
 
         player.AddSlots(hasPet);
 
-        Log("Hotbar has been setup! Equip an item or logout to see result.", player);
+        Log("HotBar has been setup! Equip an item or logout to see result.", player);
 
         return true;
     }
@@ -298,7 +309,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         }
 
         var names = args.Select(name =>
-            AlphanumericRegex().Replace(name.ToLower(), "")
+            MyRegex().Replace(name.ToLower(), "")
         ).ToList();
 
         var firstName = names[1];
@@ -350,7 +361,7 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
         player.SendLevelChange(worldHandler, worldGraph);
 
         Log(
-            $"Successfully set character {character.Data.CharacterId}'s level to {levelId} '{levelInfo.InGameName}' ({levelInfo.Name})",
+            $"Successfully set character {character.Id}'s level to {levelId} '{levelInfo.InGameName}' ({levelInfo.Name})",
             player
         );
 
@@ -430,4 +441,44 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
 
     [GeneratedRegex("[^A-Za-z0-9]+")]
     private static partial Regex AlphanumericRegex();
+
+    private bool ClosestEntity(Player player, string[] args)
+    {
+        var plane = player.GetPlaneEntities();
+
+        var closestGameObjects = plane.Select(gameObject =>
+        {
+            var x = gameObject.ObjectInfo.Position.X - player.TempData.Position.X;
+            var y = gameObject.ObjectInfo.Position.Y - player.TempData.Position.Y;
+
+            var distance = Math.Round(Math.Sqrt(Math.Pow(Math.Abs(x), 2) + Math.Pow(Math.Abs(y), 2)));
+
+            return new Tuple<double, GameObjectModel>(distance, gameObject);
+        }).OrderBy(x => x.Item1);
+
+        if (!closestGameObjects.Any())
+        {
+            Log("No game objects found close to player!", player);
+            return false;
+        }
+
+        Log("Closest Game Objects:", player);
+
+        var count = 0;
+
+        foreach (var item in closestGameObjects)
+        {
+            if (count > config.MaximumEntitiesToReturnLog)
+                break;
+
+            Log($"{item.Item1} units: " +
+                $"{item.Item2.ObjectInfo.PrefabName} " +
+                $"({item.Item2.ObjectInfo.ObjectId})",
+                player);
+
+            count++;
+        }
+
+        return true;
+    }
 }

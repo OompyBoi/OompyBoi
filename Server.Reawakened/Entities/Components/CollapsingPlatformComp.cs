@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Server.Reawakened.Rooms.Extensions;
+﻿using Server.Reawakened.Rooms.Extensions;
 using Server.Reawakened.Rooms.Models.Entities;
 
 namespace Server.Reawakened.Entities.Components;
@@ -8,10 +7,10 @@ public class CollapsingPlatformComp : Component<CollapsingPlatform>
 {
     public float ShakingTime => ComponentData.ShakingTime;
     public float RegenTime => ComponentData.RegenTime;
-    public ILogger<CollapsingPlatformComp> Logger { get; set; }
-    private float _timer;
 
+    private float _timer;
     public bool IsBroken = false;
+
     public override void Update()
     {
         if (IsBroken && _timer <= Room.Time)
