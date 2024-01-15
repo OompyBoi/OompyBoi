@@ -11,7 +11,7 @@ using UnityEngine;
 namespace Server.Reawakened.Entities.Entity;
 public class ProjectileEntity : Component<ProjectileController>
 {
-    public Vector3Model Position;
+    public new Vector3Model Position;
     public float Speed, LifeTime, StartTime;
     public Player Player;
     public int ProjectileID = 0;
@@ -28,8 +28,10 @@ public class ProjectileEntity : Component<ProjectileController>
 
         Player = player;
         ProjectileID = id;
-        Position = new Vector3Model();
-        Position.X = posX; Position.Y = posY; Position.Z = posZ;
+        Position = new Vector3Model
+        {
+            X = posX, Y = posY, Z = posZ
+        };
         StartTime = player.Room.Time;
         LifeTime = StartTime + lifeTime;
         CurrentPosition = new UnityEngine.Vector2(posX, posY);

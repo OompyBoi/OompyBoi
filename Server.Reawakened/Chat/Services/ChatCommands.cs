@@ -160,10 +160,10 @@ public partial class ChatCommands(ItemCatalog itemCatalog, ServerRConfig config,
     {
         foreach (var entityComponent in player.Room.Entities.Values.SelectMany(s => s))
         {
-            if (entityComponent is BaseSpawnerControllerComp spawner)
-            {
-                spawner.Spawn();
-            }
+            //if (entityComponent is BaseSpawnerControllerComp spawner)
+            //{
+            //    spawner.Spawn();
+            //}
         }
 
         return true;

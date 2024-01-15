@@ -29,7 +29,7 @@ public class TriggerCoopArenaSwitchControllerComp : Component<TriggerCoopArenaSw
             HandleMiniGameRace(player);
     }
 
-    public async void HandleMiniGameRace(Player player)
+    public void HandleMiniGameRace(Player player)
     {
         var startRace = new Trigger_SyncEvent(ArenaObjectId.ToString(), player.Room.Time,
             true, player.GameObjectId.ToString(), player.Room.LevelInfo.LevelId, true, true);

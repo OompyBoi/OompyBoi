@@ -13,11 +13,7 @@ public class MysticCharmTargetComp : Component<MysticCharmTarget>
     public float CollisionRemovalDelay => ComponentData.CollisionRemovalDelay;
 
     public bool IsOpened = false;
-    private int _timer;
-    public override void InitializeComponent()
-    {
-        base.InitializeComponent();
-    }
+    public override void InitializeComponent() => base.InitializeComponent();
     public override void RunSyncedEvent(SyncEvent syncEvent, Player player)
     {
         Charm(player);

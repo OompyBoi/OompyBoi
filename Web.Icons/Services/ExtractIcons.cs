@@ -64,17 +64,17 @@ public class ExtractIcons(AssetEventSink sink, IconsRConfig rConfig, IconsRwConf
             foreach (var icon in icons)
             {
                 var name = Path.GetFileNameWithoutExtension(icon);
-                var nameWExten = Path.GetFileName(icon);
+                var fileName = Path.GetFileName(icon);
 
                 if (itemCatalog.Items.Any(x => x.Value.PrefabName == name))
                     continue;
 
-                File.Copy(icon, Path.Combine(rConfig.UnknownItemsDirectory, nameWExten));
+                File.Copy(icon, Path.Combine(rConfig.UnknownItemsDirectory, fileName));
             }
         }
     }
 
-    public void ExtractIconsFrom(InternalAssetInfo asset, AssetBundleLoadEventArgs bundleEvent)
+    public void ExtractIconsFrom(InternalAssetInfo asset, AssetBundleLoadEventArgs _)
     {
         var manager = new AssetsManager();
         var assemblyLoader = new AssemblyLoader();

@@ -248,7 +248,7 @@ public class ItemCatalogInt : IBundledXml
                             continue;
                         }
 
-                        Descriptions.Add(nameId.Key, nameId.Value);
+                        Descriptions.TryAdd(nameId.Key, nameId.Value);
 
                         if (!string.IsNullOrEmpty(prefabName))
                             Items.Add(new ItemDescription(itemId,
